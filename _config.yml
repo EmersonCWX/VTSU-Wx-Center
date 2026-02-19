@@ -1,0 +1,22 @@
+# GitHub Pages Jekyll Configuration
+# https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll
+
+# Site Settings
+title: "VTSU Lyndon Weather Center"
+description: "Vermont State University Lyndon Weather Center - Real-time radar, forecasts, and weather data"
+url: "https://github.com/EmersonCWX"  # Update with your GitHub Pages URL
+baseurl: "/repository-name"  # Update if repo is not your user site (e.g., "/weather-center")
+
+# Build Settings
+theme: null  # Using custom CSS
+plugins: []  # Disable Jekyll plugins if not needed
+markdown: kramdown
+exclude:
+  - README.md
+  - .gitignore
+  - LICENSE
+  - Gemfile
+  - Gemfile.lock
+
+# Output Settings
+permalink: /:title/

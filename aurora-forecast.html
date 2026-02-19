@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVC (Aurora Visibility Calculator) | VTSU Weather Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        :root {
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2rem;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .content-wrapper {
+            width: 95%;
+            max-width: 1000px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 165, 179, 0.3);
+            border-radius: 8px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .forecast-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--vtsu-turquoise);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid rgba(0, 165, 179, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .forecast-card {
+            background: rgba(0, 165, 179, 0.1);
+            border-left: 4px solid var(--vtsu-turquoise);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+
+        .forecast-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.25rem;
+        }
+
+        .forecast-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--white);
+        }
+
+        .forecast-value.critical {
+            font-size: 1.3rem;
+            animation: pulse 1s infinite;
+            font-style: italic;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .kp-scale {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin: 1rem 0;
+        }
+
+        .kp-level {
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .kp-0 { background: #52d452; } /* Green */
+        .kp-1 { background: #52d452; }
+        .kp-2 { background: #87d87d; }
+        .kp-3 { background: #ffd500; } /* Yellow */
+        .kp-4 { background: #ffd500; }
+        .kp-5 { background: #ff9500; } /* Orange */
+        .kp-6 { background: #ff9500; }
+        .kp-7 { background: #ff4444; } /* Red */
+        .kp-8 { background: #8b0000; } /* Dark Red */
+        .kp-9 { background: #8b0000; }
+
+        .kp-level.active {
+            box-shadow: 0 0 8px rgba(26, 26, 26, 0.6), 0 0 12px rgba(26, 26, 26, 0.3);
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
+
+        .info-box {
+            background: rgba(0, 165, 179, 0.05);
+            border: 1px solid rgba(0, 165, 179, 0.2);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            line-height: 1.6;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 1rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: var(--vtsu-turquoise);
+        }
+
+        .error {
+            display: none;
+            background: rgba(236, 55, 84, 0.2);
+            border-left: 4px solid var(--vtsu-red);
+            color: var(--vtsu-red);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .bottom-info {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 1024px) {
+            .nav-title {
+                font-size: 1rem;
+            }
+
+            .back-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .content-wrapper {
+                max-width: 100%;
+                padding: 1.5rem;
+            }
+
+            .kp-scale {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 6px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-title {
+                font-size: 0.9rem;
+            }
+
+            .back-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+                left: 0.5rem;
+            }
+
+            .container {
+                padding: 0.75rem;
+            }
+
+            .content-wrapper {
+                padding: 1rem;
+                border-radius: 6px;
+            }
+
+            .section-title {
+                font-size: 1rem;
+            }
+
+            .forecast-card {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .forecast-value {
+                font-size: 1.1rem;
+            }
+
+            .chart-container {
+                height: 250px;
+                padding: 0.75rem;
+            }
+
+            .info-box {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            .kp-level {
+                padding: 10px;
+                font-size: 0.85rem;
+            }
+
+            .kp-scale {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .top-nav {
+                padding: 0.6rem 0.5rem;
+            }
+
+            .nav-title {
+                font-size: 0.8rem;
+            }
+
+            .back-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+                left: 0.25rem;
+            }
+
+            .container {
+                padding: 0.5rem;
+            }
+
+            .content-wrapper {
+                padding: 0.75rem;
+                border-radius: 4px;
+            }
+
+            .section-title {
+                font-size: 0.9rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .forecast-card {
+                padding: 0.6rem;
+                margin-bottom: 0.6rem;
+            }
+
+            .forecast-label {
+                font-size: 0.8rem;
+            }
+
+            .forecast-value {
+                font-size: 1rem;
+            }
+
+            .chart-container {
+                height: 200px;
+                padding: 0.5rem;
+                margin: 1rem 0;
+            }
+
+            .info-box {
+                padding: 0.6rem;
+                font-size: 0.85rem;
+                line-height: 1.4;
+            }
+
+            .kp-level {
+                padding: 8px;
+                font-size: 0.75rem;
+            }
+
+            .kp-scale {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+                gap: 3px;
+            }
+
+            .bottom-info {
+                margin-top: 1rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
+        <div class="nav-title">AVC (Aurora Visibility Calculator)</div>
+    </nav>
+
+    <div class="container">
+        <div class="loading" id="loading">Loading aurora forecast data...</div>
+        <div class="error" id="error"></div>
+
+        <div class="content-wrapper" id="contentWrapper" style="display: none;">
+            <!-- Current Conditions -->
+            <div class="forecast-section">
+                <div class="section-title">Current Aurora Forecast</div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Current Kp Index</div>
+                    <div class="forecast-value" id="currentKp">-- </div>
+                </div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Your Location</div>
+                    <div class="forecast-value" id="userLocation">Detecting...</div>
+                </div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Cloud Cover</div>
+                    <div class="forecast-value" id="cloudCover">--</div>
+                </div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Bz (Magnetic Field)</div>
+                    <div class="forecast-value" id="bzValue">-- nT</div>
+                </div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Aurora Visibility Rating</div>
+                    <div class="forecast-value" id="auroraRating">--</div>
+                </div>
+                <div class="forecast-card">
+                    <div class="forecast-label">Best Viewing Time (Tonight)</div>
+                    <div class="forecast-value" id="bestViewingTime">22:00 - 04:00 UTC</div>
+                </div>
+            </div>
+
+            <!-- Kp Scale Guide -->
+            <div class="forecast-section">
+                <div class="section-title">Kp Index Scale</div>
+                <div class="kp-scale">
+                    <div class="kp-level kp-0">0-1<br><small>Quiet</small></div>
+                    <div class="kp-level kp-2">2<br><small>Unsettled</small></div>
+                    <div class="kp-level kp-3">3-4<br><small>Active</small></div>
+                    <div class="kp-level kp-5">5-6<br><small>Minor Storm</small></div>
+                    <div class="kp-level kp-7">7<br><small>Moderate</small></div>
+                    <div class="kp-level kp-8">8-9<br><small>Severe</small></div>
+                </div>
+            </div>
+
+            <!-- 24-Hour Forecast Chart -->
+            <div class="forecast-section">
+                <div class="section-title">24-Hour Kp Index Forecast</div>
+                <div class="chart-container">
+                    <canvas id="auroraChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Source -->
+            <div class="bottom-info">
+                <p>Data Provided by NOAA Space Weather Prediction Center</p>
+                <p>Last Updated: <span id="updateTime">--:--:-- UTC</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let auroraChart = null;
+        let userLatitude = 44.4; // Default to Lyndon, VT
+        let userLongitude = -72.0; // Default to Lyndon, VT
+        let currentCloudCover = 0; // Cloud cover percentage
+        let currentBz = 0; // Magnetic field Bz component (nT)
+
+        // Get user's location
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLatitude = position.coords.latitude;
+                        userLongitude = position.coords.longitude;
+                        updateLocationDisplay();
+                    },
+                    (error) => {
+                        console.log('Geolocation error, using default Lyndon, VT');
+                        updateLocationDisplay();
+                    }
+                );
+            } else {
+                updateLocationDisplay();
+            }
+        }
+
+        function updateLocationDisplay() {
+            const locationEl = document.getElementById('userLocation');
+            // First set with just coordinates while fetching city name
+            locationEl.textContent = `(${userLatitude.toFixed(2)}°N, ${Math.abs(userLongitude).toFixed(2)}°W)`;
+            
+            // Fetch city name and weather data
+            fetchCityName();
+            fetchWeatherData();
+        }
+
+        async function fetchCityName() {
+            try {
+                // Using Nominatim API (OpenStreetMap) - better at finding nearest cities
+                const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLatitude}&lon=${userLongitude}&zoom=10&addressdetails=1`;
+                const response = await fetch(nominatimUrl, {
+                    headers: { 'Accept-Language': 'en' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch location name');
+                }
+                
+                const data = await response.json();
+                const locationEl = document.getElementById('userLocation');
+                
+                if (data.address) {
+                    const addr = data.address;
+                    // Try to get city/town, fall back to village, then county
+                    let cityName = addr.city || addr.town || addr.village || addr.county || data.name || 'Unknown';
+                    let stateName = addr.state || '';
+                    let countryName = addr.country || '';
+                    
+                    // Build location string
+                    let fullLocation = cityName;
+                    if (stateName && stateName !== cityName) fullLocation += `, ${stateName}`;
+                    
+                    locationEl.textContent = `${fullLocation} (${userLatitude.toFixed(2)}°N, ${Math.abs(userLongitude).toFixed(2)}°W)`;
+                } else {
+                    // Fallback to just coordinates
+                    locationEl.textContent = `(${userLatitude.toFixed(2)}°N, ${Math.abs(userLongitude).toFixed(2)}°W)`;
+                }
+            } catch (error) {
+                console.log('Location name unavailable:', error);
+                // Keep showing coordinates
+                const locationEl = document.getElementById('userLocation');
+                locationEl.textContent = `(${userLatitude.toFixed(2)}°N, ${Math.abs(userLongitude).toFixed(2)}°W)`;
+            }
+        }
+
+        async function fetchWeatherData() {
+            try {
+                // Using Open-Meteo API (free, no API key required)
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${userLatitude}&longitude=${userLongitude}&current=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high&forecast_days=1`;
+                const weatherResponse = await fetch(weatherUrl);
+                
+                if (!weatherResponse.ok) {
+                    throw new Error('Failed to fetch weather data');
+                }
+                
+                const weatherData = await weatherResponse.json();
+                currentCloudCover = weatherData.current.cloud_cover || 0;
+                
+                // Update cloud cover display
+                const cloudEl = document.getElementById('cloudCover');
+                const cloudDescription = getCloudDescription(currentCloudCover);
+                cloudEl.textContent = `${currentCloudCover}% ${cloudDescription}`;
+                
+            } catch (error) {
+                console.log('Weather data unavailable:', error);
+                currentCloudCover = 50; // Default to moderate clouds
+                const cloudEl = document.getElementById('cloudCover');
+                cloudEl.textContent = '-- (Unable to fetch)';
+            }
+        }
+
+        function getCloudDescription(cloudCover) {
+            if (cloudCover <= 10) return '(Clear)';
+            if (cloudCover <= 25) return '(Mostly Clear)';
+            if (cloudCover <= 50) return '(Partly Cloudy)';
+            if (cloudCover <= 75) return '(Mostly Cloudy)';
+            if (cloudCover <= 90) return '(Overcast)';
+            return '(Dense Overcast)';
+        }
+
+        function getAuroraVisibilityDescription(latitude) {
+            const absLat = Math.abs(latitude);
+            if (absLat >= 60) {
+                return "High latitude - Aurora visible most nights during geomagnetic activity";
+            } else if (absLat >= 50) {
+                return "Mid-high latitude - Aurora visible on moderate activity nights (Kp 4+)";
+            } else if (absLat >= 40) {
+                return "Mid latitude - Aurora visible on active nights (Kp 6+), rare otherwise";
+            } else if (absLat >= 30) {
+                return "Lower mid latitude - Aurora rare, only visible during strong storms (Kp 7+)";
+            } else {
+                return "Tropical latitude - Aurora extremely rare, major geomagnetic storms only";
+            }
+        }
+
+
+        function highlightCurrentKp(currentKp) {
+            // Remove active class from all kp levels
+            document.querySelectorAll('.kp-level').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Find and highlight the current Kp level
+            const kpLevels = document.querySelectorAll('.kp-level');
+            let targetIndex = -1;
+            
+            if (currentKp < 2) targetIndex = 0;
+            else if (currentKp < 3) targetIndex = 1;
+            else if (currentKp < 5) targetIndex = 2;
+            else if (currentKp < 7) targetIndex = 3;
+            else if (currentKp < 8) targetIndex = 4;
+            else targetIndex = 5;
+            
+            if (targetIndex >= 0 && targetIndex < kpLevels.length) {
+                kpLevels[targetIndex].classList.add('active');
+            }
+        }
+
+        async function loadAuroraData() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const contentWrapper = document.getElementById('contentWrapper');
+
+            try {
+                loading.style.display = 'block';
+                error.style.display = 'none';
+
+                const kpUrl = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json';
+                const magUrl = 'https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json';
+                const kpResponse = await fetch(kpUrl);
+                const magResponse = await fetch(magUrl);
+
+                if (!kpResponse.ok || !magResponse.ok) {
+                    throw new Error(`HTTP error! status: ${!kpResponse.ok ? kpResponse.status : magResponse.status}`);
+                }
+
+                const kpData = await kpResponse.json();
+                const magData = await magResponse.json();
+                
+                // Get current Bz value
+                const latestMagData = magData[magData.length - 1];
+                currentBz = -(Array.isArray(latestMagData?.bz_gsm) ? latestMagData.bz_gsm[0] : (latestMagData?.bz_gsm || 0));
+                
+                // Display Bz value
+                const bzEl = document.getElementById('bzValue');
+                bzEl.textContent = currentBz.toFixed(1) + ' nT';
+                bzEl.style.color = currentBz < 0 ? '#ff4d4d' : '#52d452'; // Red for South, Green for North
+                
+                // Process Kp data into 3-hour intervals for 24 hours
+                const now = new Date();
+                const kpIndexData = [];
+                const timeLabels = [];
+
+                for (let i = 23; i >= 0; i--) {
+                    const date = new Date(now);
+                    date.setUTCHours(date.getUTCHours() - i);
+                    const hour = date.getUTCHours();
+                    const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+                    
+                    // Find average Kp for this hour
+                    let hourlyKpValues = [];
+                    kpData.forEach(point => {
+                        const pointDate = new Date(point.time_tag);
+                        if (String(pointDate.getUTCHours()).padStart(2, '0') === String(hour).padStart(2, '0') &&
+                            pointDate.toISOString().split('T')[0] === dateStr) {
+                            hourlyKpValues.push(point.kp_index);
+                        }
+                    });
+
+                    const avgKp = hourlyKpValues.length > 0 
+                        ? Math.round(hourlyKpValues.reduce((a, b) => a + b, 0) / hourlyKpValues.length * 10) / 10 
+                        : 0;
+                    
+                    kpIndexData.push(avgKp);
+                    timeLabels.push(String(hour).padStart(2, '0') + ':00');
+                }
+
+                // Get current Kp
+                const currentKpValue = kpData[kpData.length - 1]?.kp_index || 0;
+                
+                // Update UI
+                const currentKpEl = document.getElementById('currentKp');
+                currentKpEl.textContent = currentKpValue.toFixed(1);
+                
+                // Set aurora rating based on Kp, Bz, and cloud cover
+                const ratingEl = document.getElementById('auroraRating');
+                
+                // Special message for very poor conditions
+                if (currentKpValue <= 1 && currentCloudCover >= 80) {
+                    ratingEl.textContent = "Don't even look here - just uncharge your camera and go home";
+                    ratingEl.style.color = '#999999';
+                    ratingEl.classList.add('critical');
+                } else {
+                    ratingEl.classList.remove('critical');
+                    let rating = 'Unfavorable';
+                    let color = '#52d452';
+                    
+                    // Calculate cloud cover impact (0 to 1, where 1 is clear sky)
+                    const cloudImpact = 1 - (currentCloudCover / 100);
+                    
+                    // Calculate Bz boost - strong southward (negative) Bz enhances aurora
+                    let bzBoost = 0;
+                    if (currentBz < -5) bzBoost = 1.5; // Strong southward field
+                    else if (currentBz < -3) bzBoost = 1.2; // Moderate southward field
+                    else if (currentBz < 0) bzBoost = 1.0; // Slight southward field
+                    else bzBoost = 0.7; // Northward field reduces visibility
+                    
+                    // Effective Kp with Bz boost
+                    const effectiveKp = currentKpValue * bzBoost;
+                    
+                    // Adjust rating based on user's latitude
+                    const absLat = Math.abs(userLatitude);
+                    if (absLat >= 60) {
+                        if (effectiveKp >= 8) {
+                            rating = 'Spectacular - Outstanding Display';
+                            color = '#8b0000';
+                        } else if (effectiveKp >= 7) {
+                            rating = 'Excellent - Strong Display Expected';
+                            color = '#ff4444';
+                        } else if (effectiveKp >= 5) {
+                            rating = 'Excellent - Aurora Likely';
+                            color = '#ffd500';
+                        } else if (effectiveKp >= 3) {
+                            rating = 'Good - Aurora May Be Visible';
+                            color = '#52d452';
+                        } else {
+                            rating = 'Unfavorable';
+                            color = '#52d452';
+                        }
+                    } else if (absLat >= 50) {
+                        if (effectiveKp >= 8) {
+                            rating = 'Excellent - Strong Display Expected';
+                            color = '#8b0000';
+                        } else if (effectiveKp >= 6) {
+                            rating = 'Good - Likely Visible';
+                            color = '#ff4444';
+                        } else if (effectiveKp >= 5) {
+                            rating = 'Moderate - May Be Visible (Strong Bz)';
+                            color = '#ff9500';
+                        } else if (effectiveKp >= 4) {
+                            rating = 'Moderate - May Be Visible';
+                            color = '#ff9500';
+                        } else if (effectiveKp >= 2) {
+                            rating = 'Fair - Unlikely';
+                            color = '#ffd500';
+                        } else {
+                            rating = 'Unfavorable';
+                            color = '#52d452';
+                        }
+                    } else if (absLat >= 40) {
+                        if (effectiveKp >= 8) {
+                            rating = 'Excellent - Likely Visible';
+                            color = '#8b0000';
+                        } else if (effectiveKp >= 7) {
+                            rating = 'Good - Strong Bz Helping';
+                            color = '#ff4444';
+                        } else if (effectiveKp >= 6) {
+                            rating = 'Good - May Be Visible';
+                            color = '#ff4444';
+                        } else if (effectiveKp >= 5) {
+                            rating = 'Fair - Strong Bz Improves Chances';
+                            color = '#ff9500';
+                        } else if (effectiveKp >= 4) {
+                            rating = 'Fair - Unlikely';
+                            color = '#ff9500';
+                        } else {
+                            rating = 'Unfavorable';
+                            color = '#52d452';
+                        }
+                    } else if (absLat >= 30) {
+                        if (effectiveKp >= 9) {
+                            rating = 'Fair - May Be Visible';
+                            color = '#8b0000';
+                        } else if (effectiveKp >= 7) {
+                            rating = 'Very Poor - Unlikely';
+                            color = '#ff4444';
+                        } else {
+                            rating = 'Unfavorable';
+                            color = '#52d452';
+                        }
+                    } else {
+                        if (effectiveKp >= 9) {
+                            rating = 'Very Poor - May Be Visible';
+                            color = '#8b0000';
+                        } else {
+                            rating = 'Extremely Unfavorable';
+                            color = '#52d452';
+                        }
+                    }
+                    
+                    // Apply cloud cover adjustment
+                    if (currentCloudCover >= 80) {
+                        // Dense overcast - significantly reduce visibility
+                        rating = rating.replace('Excellent', 'Fair').replace('Good', 'Poor').replace('Moderate', 'Very Poor').replace('Strong', 'Faint');
+                        if (rating.includes('Spectacular')) rating = 'Good - Clouds will block view';
+                        if (currentCloudCover === 100) rating = 'Impossible - Complete cloud cover';
+                    } else if (currentCloudCover >= 60) {
+                        // Mostly cloudy - moderate reduction
+                        rating = rating.replace('Excellent', 'Moderate').replace('Good', 'Fair').replace('Likely', 'Possible');
+                    } else if (currentCloudCover >= 40) {
+                        // Partly cloudy - slight reduction
+                        rating = rating.replace('Excellent', 'Good').replace('Strong', 'Moderate');
+                    }
+                    
+                    ratingEl.textContent = rating;
+                    ratingEl.style.color = color;
+                    currentKpEl.style.color = color;
+                }
+
+                // Highlight current Kp level
+                highlightCurrentKp(currentKpValue);
+
+                // Create chart
+                createAuroraChart(timeLabels, kpIndexData);
+
+                // Update time
+                const utcTime = now.toISOString().split('T')[1].substring(0, 8);
+                document.getElementById('updateTime').textContent = `${utcTime} UTC`;
+
+                contentWrapper.style.display = 'block';
+                loading.style.display = 'none';
+
+            } catch (err) {
+                console.error('Failed to load aurora data:', err);
+                error.style.display = 'block';
+                error.textContent = `Error loading data: ${err.message}`;
+                loading.style.display = 'none';
+            }
+        }
+
+        function createAuroraChart(timeLabels, kpData) {
+            if (auroraChart) {
+                auroraChart.destroy();
+            }
+
+            const getKpColor = (value) => {
+                if (value < 2) return '#52d452';      // Green
+                if (value < 4) return '#ffd500';      // Yellow
+                if (value < 6) return '#ff9500';      // Orange
+                if (value < 8) return '#ff4444';      // Red
+                return '#8b0000';                     // Dark Red
+            };
+
+            const isMobile = window.innerWidth <= 768;
+            const legendFontSize = window.innerWidth <= 480 ? 8 : isMobile ? 9 : 11;
+            const tickFontSize = window.innerWidth <= 480 ? 7 : isMobile ? 8 : 10;
+
+            const ctx = document.getElementById('auroraChart').getContext('2d');
+            auroraChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Kp Index',
+                        data: kpData,
+                        borderColor: '#67b7ff',
+                        backgroundColor: 'rgba(103, 183, 255, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: window.innerWidth <= 480 ? 2 : 3,
+                        pointBackgroundColor: '#67b7ff',
+                        pointBorderColor: '#00A5B3'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#ffffff',
+                                font: { size: legendFontSize, weight: 'bold' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: tickFontSize },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 9,
+                            display: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: tickFontSize }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Kp Index',
+                                color: '#ffffff',
+                                font: { size: tickFontSize + 2 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            getUserLocation();
+            loadAuroraData();
+        });
+    </script>
+</body>
+</html>

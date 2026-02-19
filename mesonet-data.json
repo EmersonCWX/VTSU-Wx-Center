@@ -1,0 +1,5 @@
+{
+  "timestamp": "2026-02-19T12:00:00Z",
+  "status": "pending",
+  "message": "Waiting for first update from GitHub Actions workflow. Please configure the workflow secret with your Synoptic API token."
+}

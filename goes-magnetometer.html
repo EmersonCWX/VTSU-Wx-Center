@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOES Magnetometer Data | VTSU Weather Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        :root {
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            width: 95%;
+            max-width: 1200px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 165, 179, 0.3);
+            border-radius: 8px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        canvas {
+            max-height: 500px;
+        }
+
+        .info-bottom {
+            position: absolute;
+            bottom: 10px;
+            width: calc(100% - 2rem);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .last-update-left {
+            text-align: left;
+        }
+
+        .credit-right {
+            text-align: right;
+            color: var(--vtsu-turquoise);
+        }
+
+        .loading {
+            display: none;
+            font-size: 1.2rem;
+            color: var(--vtsu-turquoise);
+        }
+
+        .error {
+            display: none;
+            color: var(--vtsu-red);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
+        <div class="nav-title">GOES Magnetometer Data</div>
+    </nav>
+
+    <div class="container">
+        <div class="loading" id="loading">Loading magnetometer data...</div>
+        <div class="error" id="error"></div>
+        
+        <div class="chart-wrapper" id="chartWrapper" style="display: none;">
+            <canvas id="magnetometerChart"></canvas>
+            <div class="info-bottom">
+                <div class="last-update-left">Last Updated: <span id="updateTime">--:--:-- UTC</span></div>
+                <div class="credit-right">Data Provided by SWPC</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+        let updateInterval = null;
+
+        async function fetchMagnetometerData() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const chartWrapper = document.getElementById('chartWrapper');
+
+            try {
+                loading.style.display = 'block';
+                error.style.display = 'none';
+
+                // SWPC GOES Magnetometer API endpoints (6-hour data)
+                const goes18Url = 'https://services.swpc.noaa.gov/json/goes/secondary/magnetometers-6-hour.json';
+                const goes19Url = 'https://services.swpc.noaa.gov/json/goes/primary/magnetometers-6-hour.json';
+                
+                // Fetch both datasets
+                const [response18, response19] = await Promise.all([
+                    fetch(goes18Url),
+                    fetch(goes19Url)
+                ]);
+                
+                if (!response18.ok || !response19.ok) {
+                    throw new Error(`HTTP error! status: ${!response18.ok ? response18.status : response19.status}`);
+                }
+
+                const data18 = await response18.json();
+                const data19 = await response19.json();
+                
+                console.log('GOES-18 data:', data18);
+                console.log('GOES-19 data:', data19);
+
+                // Extract time series data
+                const timeLabels = [];
+                const goes18Data = [];
+                const goes19Data = [];
+                
+                // Create a map for easy lookup
+                const dataMap19 = {};
+                data19.forEach(point => {
+                    dataMap19[point.time_tag] = point.Hp;
+                });
+
+                // Process GOES-18 data as primary timeline
+                data18.forEach(point => {
+                    timeLabels.push(new Date(point.time_tag).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+                    goes18Data.push(point.Hp);
+                    
+                    // Find matching GOES-19 data
+                    if (dataMap19[point.time_tag]) {
+                        goes19Data.push(dataMap19[point.time_tag]);
+                    } else {
+                        goes19Data.push(null);
+                    }
+                });
+
+                // Update chart
+                updateChart(timeLabels, goes18Data, goes19Data);
+                
+                // Update last update time
+                const now = new Date();
+                const utcTime = now.toISOString().split('T')[1].substring(0, 8);
+                document.getElementById('updateTime').textContent = `${utcTime} UTC`;
+
+                chartWrapper.style.display = 'block';
+                loading.style.display = 'none';
+
+            } catch (err) {
+                console.error('Failed to fetch magnetometer data:', err);
+                error.style.display = 'block';
+                error.textContent = `Error loading data: ${err.message}`;
+                loading.style.display = 'none';
+            }
+        }
+
+        function updateChart(timeLabels, goes18Data, goes19Data) {
+            const ctx = document.getElementById('magnetometerChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'GOES-18 HP',
+                            data: goes18Data,
+                            borderColor: '#1e90ff',
+                            backgroundColor: 'rgba(30, 144, 255, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointBackgroundColor: '#1e90ff',
+                            fill: false
+                        },
+                        {
+                            label: 'GOES-19 HP',
+                            data: goes19Data,
+                            borderColor: '#ff4444',
+                            backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointBackgroundColor: '#ff4444',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                maxTicksLimit: 10
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Horizontal North Component (nT)',
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            fetchMagnetometerData();
+            // Refresh every 5 minutes
+            updateInterval = setInterval(fetchMagnetometerData, 300000);
+        });
+
+        // Clean up interval on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>
