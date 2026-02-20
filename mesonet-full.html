@@ -36,12 +36,38 @@
             padding: 0.8rem 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
 
         .nav-title {
             font-size: 1.2rem;
             font-weight: bold;
             color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
 
         .container {
@@ -158,25 +184,6 @@
             text-align: center;
         }
 
-        .back-btn {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: var(--vtsu-turquoise);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .back-btn:hover {
-            background: var(--vtsu-red);
-        }
-
         /* Mobile responsiveness */
         @media (max-width: 1024px) {
             .nav-title {
@@ -213,7 +220,7 @@
 
             .back-btn {
                 padding: 6px 12px;
-                font-size: 14px;
+                font-size: 12px;
             }
         }
 
@@ -225,8 +232,6 @@
             .back-btn {
                 padding: 5px 10px;
                 font-size: 12px;
-                top: 0.75rem;
-                left: 0.75rem;
             }
 
             .container {
@@ -291,7 +296,6 @@
             .back-btn {
                 padding: 4px 8px;
                 font-size: 11px;
-                top: 0.5rem;
                 left: 0.5rem;
             }
 
@@ -363,10 +367,9 @@
 </head>
 <body>
     <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
         <div class="nav-title">VTSU Mesonet Full Dataset (Last 24 Hours)</div>  
     </nav>
-
-    <a href="index.html" class="back-btn">← Back</a>
 
     <div class="container">
         <div class="loading" id="loading">Loading station dataset...</div>      
@@ -471,6 +474,28 @@
             return Number.isFinite(num) ? num : null;
         }
 
+        function parsePressureValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // Synoptic API returns pressure in Pascals when using metric units
+            // Convert to hPa by dividing by 100
+            return parsed / 100;
+        }
+
+        function parseTempValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // Convert from Celsius to Fahrenheit
+            return (parsed * 9/5) + 32;
+        }
+
+        function parseWindValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // Convert from m/s to mph (1 m/s = 2.23694 mph)
+            return parsed * 2.23694;
+        }
+
         function getTimeUntilNextReset() {
             const now = new Date();
             const nextReset = new Date(now);
@@ -510,7 +535,7 @@
                 const startTime = formatUtcForApi(today0000Z);
                 const endTime = formatUtcForApi(now);
 
-                const apiUrl = `https://api.synopticdata.com/v2/stations/timeseries?stid=${STID}&start=${startTime}&end=${endTime}&token=${TOKEN}&units=english&obtimezone=utc`;
+                const apiUrl = `https://api.synopticdata.com/v2/stations/timeseries?stid=${STID}&start=${startTime}&end=${endTime}&token=${TOKEN}&units=metric&obtimezone=utc`;
                 const corsProxy = 'https://corsproxy.io/?';
 
                 console.log('Fetching from Synoptic API timeseries...');    
@@ -531,7 +556,7 @@
                 const temps = obs.air_temp_set_1 || [];
                 const winds = obs.wind_speed_set_1 || [];
                 const humidities = obs.relative_humidity_set_1 || [];       
-                const pressures = obs.pressure_set_1 || [];
+                let pressures = obs.pressure_set_1 || obs.pres_set_1 || obs.altimeter_set_1 || obs.sea_level_pres_set_1 || [];
 
                 seriesState.timeLabels = [];
                 seriesState.tempData = [];
@@ -548,10 +573,10 @@
                     });
 
                     seriesState.timeLabels.push(timeLabel);
-                    seriesState.tempData.push(parseValue(temps[i]));        
-                    seriesState.windData.push(parseValue(winds[i]));        
+                    seriesState.tempData.push(parseTempValue(temps[i]));        
+                    seriesState.windData.push(parseWindValue(winds[i]));        
                     seriesState.humidityData.push(parseValue(humidities[i]));
-                    seriesState.pressureData.push(parseValue(pressures[i]));
+                    seriesState.pressureData.push(parsePressureValue(pressures[i]));
                 }
 
                 console.log(`Direct API backfill succeeded! Loaded ${seriesState.timeLabels.length} data points`);
@@ -602,7 +627,7 @@
                 }
 
                 // Fetch and add latest data point
-                const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
+                const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=metric`;
                 const corsProxy = 'https://corsproxy.io/?';
 
                 let response;
@@ -628,17 +653,17 @@
                 }
 
                 const obs = data.STATION[0].OBSERVATIONS;
-                const temp = parseValue(obs.air_temp_value_1?.value);
-                const wind = parseValue(obs.wind_speed_value_1?.value);
+                const temp = parseTempValue(obs.air_temp_value_1?.value);
+                const wind = parseWindValue(obs.wind_speed_value_1?.value);
                 const humidity = parseValue(obs.relative_humidity_value_1?.value);
 
                 // Try multiple pressure field names
-                let pressure = parseValue(obs.pressure_value_1?.value);
+                let pressure = parsePressureValue(obs.pressure_value_1?.value);
                 if (pressure === null) {
-                    pressure = parseValue(obs.altimeter_value_1?.value);        
+                    pressure = parsePressureValue(obs.altimeter_value_1?.value);        
                 }
                 if (pressure === null) {
-                    pressure = parseValue(obs.sea_level_pressure_value_1?.value);
+                    pressure = parsePressureValue(obs.sea_level_pressure_value_1?.value);
                 }
 
                 if (temp === null && wind === null && humidity === null && pressure === null) {
@@ -786,8 +811,8 @@
 
             charts.pressure = new Chart(document.getElementById('pressureChart').getContext('2d'), {
                 type: 'line',
-                data: { labels: timeLabels, datasets: [{ label: 'Pressure (inHg)', data: pressureData, ...lineStyle('#ffa500') }] },
-                options: baseOptions('Pressure (inHg)')
+                data: { labels: timeLabels, datasets: [{ label: 'Pressure (hPa)', data: pressureData, ...lineStyle('#ffa500') }] },
+                options: baseOptions('Pressure (hPa)')
             });
         }
 
