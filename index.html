@@ -557,8 +557,7 @@
             if (mesonetBtn) {
                 mesonetBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    const url = mesonetBtn.dataset.url || 'https://atmos.northernvermont.edu/weather-data/weather-station/';
-                    window.open(url, '_blank', 'noopener,noreferrer');
+                    showMesonetWidget();
                 });
             }
 
@@ -566,6 +565,163 @@
             window.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('currentView');
             });
+        })();
+
+        // Mesonet Widget Functionality
+        (function() {
+            const TOKEN = 'a5d9d976cd324d9e9b2c61fbc55b8b61';
+            const STID = 'LSC01';
+            const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
+            let weatherUpdateInterval = null;
+            let dailyResetTimeout = null;
+
+            function getTimeUntilNextReset() {
+                const now = new Date();
+                const nextReset = new Date(now);
+                nextReset.setUTCHours(24, 0, 0, 0);
+                if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && now.getUTCSeconds() < 1) {
+                    nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+                }
+                return nextReset.getTime() - now.getTime();
+            }
+
+            function scheduleDailyReset() {
+                if (dailyResetTimeout) {
+                    clearTimeout(dailyResetTimeout);
+                }
+                const timeUntilReset = getTimeUntilNextReset();
+                dailyResetTimeout = setTimeout(() => {
+                    fetchWeather();
+                    scheduleDailyReset();
+                }, timeUntilReset);
+            }
+
+            window.showMesonetWidget = function() {
+                localStorage.setItem('currentView', 'mesonet');
+                const splashContainer = document.querySelector('.splash-container');
+                if (!splashContainer) return;
+
+                splashContainer.innerHTML = `
+                    <div class="logo-area">
+                        <h1>Vermont State University</h1>
+                        <h2>Lyndon Weather Station</h2>
+                    </div>
+
+                    <div id="lyndon-weather" style="font-family: sans-serif; padding: 20px; border: 2px solid var(--vtsu-turquoise); border-radius: 8px; background-color: rgba(0, 165, 179, 0.1); margin: 20px auto; max-width: 600px;">
+                        <p style="font-size: 1.2rem; color: var(--white);">Loading latest Lyndon weather data...</p>
+                    </div>
+
+                    <button onclick="resetToRadar()" style="background: var(--vtsu-red); color: white; border: none; padding: 12px 35px; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; margin-top: 20px;">Back to Radar</button>
+                `;
+
+                fetchWeather();
+                if (weatherUpdateInterval) clearInterval(weatherUpdateInterval);
+                weatherUpdateInterval = setInterval(fetchWeather, 300000);
+                scheduleDailyReset();
+            };
+
+            window.fetchWeather = async function() {
+                const weatherDiv = document.getElementById('lyndon-weather');
+                try {
+                    const corsProxy = 'https://corsproxy.io/?';
+                    const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
+                    
+                    let response;
+                    try {
+                        response = await fetch(corsProxy + encodeURIComponent(apiUrl), { mode: 'cors' });
+                    } catch (corsError) {
+                        console.log('CORS proxy failed, attempting direct fetch...');
+                        response = await fetch(apiUrl);
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.SUMMARY && data.SUMMARY.RESPONSE_CODE !== 1) {
+                        throw new Error(data.SUMMARY.RESPONSE_MESSAGE || 'API error: No station data available');
+                    }
+
+                    if (!data.STATION || data.STATION.length === 0) {
+                        throw new Error('No station data available');
+                    }
+
+                    const obs = data.STATION[0].OBSERVATIONS;
+                    const temp = obs.air_temp_value_1?.value || 'N/A';
+                    const wind = obs.wind_speed_value_1?.value || 'N/A';
+                    const humidity = obs.relative_humidity_value_1?.value || 'N/A';
+                    const windDir = obs.wind_direction_value_1?.value || 'N/A';
+
+                    const now = new Date();
+                    const fetchTime24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const zuluTime = now.toISOString().split('T')[1].substring(0, 8) + 'Z';
+
+                    if (weatherDiv) {
+                        weatherDiv.innerHTML = `
+                            <h3 class="mesonet-header" style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon</h3>
+                            <div class="mesonet-content" style="font-size: 1.1rem; color: var(--white); line-height: 1.8; text-align: left; max-width: 500px; margin: 0 auto;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp}°F</div>
+                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind} mph</div>
+                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${windDir}°</div>
+                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity}%</div>
+                                </div>
+                                <div style="margin-top: 15px; text-align: center;">
+                                    <small style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Data Updated: ${fetchTime24} (${zuluTime})</small>
+                                </div>
+                                <div style="margin-top: 15px; text-align: center;">
+                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data →</a>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch weather data:", err);
+                    if (weatherDiv) {
+                        weatherDiv.innerHTML = `
+                            <h3 style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon Weather Station</h3>
+                            <p style="color: var(--vtsu-red); margin-bottom: 15px;">Unable to load live data at this time.</p>
+                            <p style="color: var(--white); font-size: 0.95rem; margin-bottom: 15px;">${err.message}</p>
+                            <a href="https://atmos.northernvermont.edu/weather-data/weather-station/" target="_blank"
+                               style="display: inline-block; background: var(--vtsu-turquoise); color: white; padding: 10px 25px; border-radius: 4px; text-decoration: none; font-weight: bold;">
+                                View Station Website →
+                            </a>
+                        `;
+                    }
+                }
+            };
+
+            window.resetToRadar = function() {
+                localStorage.removeItem('currentView');
+                if (weatherUpdateInterval) {
+                    clearInterval(weatherUpdateInterval);
+                    weatherUpdateInterval = null;
+                }
+                if (dailyResetTimeout) {
+                    clearTimeout(dailyResetTimeout);
+                    dailyResetTimeout = null;
+                }
+
+                const splashContainer = document.querySelector('.splash-container');
+                if (!splashContainer) return;
+
+                splashContainer.innerHTML = `
+                    <div class="logo-area">
+                        <h1>Vermont State University</h1>
+                        <h2>Lyndon Weather Center</h2>
+                    </div>
+
+                    <div class="loop-frame">
+                        <img id="radar-loop" src="https://radar.weather.gov/ridge/standard/KCXX_loop.gif" alt="NWS KCXX Burlington Radar Loop">
+                    </div>
+
+                    <div class="loop-controls">
+                        <div>RADAR NWS KCXX (Burlington, VT)</div>
+                    </div>
+                `;
+            };
         })();
 
         // Warning System - Fetch and display severe weather warnings
