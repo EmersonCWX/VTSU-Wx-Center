@@ -342,32 +342,247 @@
                 display: inline-block;
             }
 
-            .splash-container {
-                padding: 1rem;
-                width: 98%;
-                max-width: 980px;
+            .main-wrapper {
+                padding: 10px;
             }
 
-            .logo-area h1 { font-size: 1.6rem; }
-            .logo-area h2 { font-size: 1rem; }
+            .splash-container {
+                padding: 1.2rem;
+                width: 98%;
+                max-width: 100%;
+            }
+
+            .logo-area h1 { 
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+
+            .logo-area h2 { 
+                margin: 5px 0 15px 0;
+                font-size: 0.9rem;
+                padding-bottom: 4px;
+            }
 
             /* Make radar image responsive and avoid overflow on tall screens */
             #radar-loop {
-                width: 94vw;
+                width: 90vw;
                 height: auto;
-                max-height: 70vh;
+                max-height: 50vh;
                 object-fit: contain;
             }
 
-            .loop-frame { padding: 8px 0; }
+            .loop-frame { 
+                padding: 8px 0;
+                margin: 0 auto 0.8rem auto;
+            }
 
-            .enter-btn { padding: 12px 24px; }
+            .loop-controls {
+                font-size: 0.75rem;
+                padding: 0;
+            }
 
-            footer { font-size: 0.82rem; padding: 0.8rem 0; }
+            .enter-btn { 
+                padding: 10px 20px;
+                font-size: 0.95rem;
+                margin-top: 10px;
+            }
+
+            footer { 
+                font-size: 0.75rem;
+                padding: 0.6rem 0;
+            }
 
             /* Make dropdowns easier to interact with on touch */
-            .dropdown-btn { padding: 10px 12px; }
-            .dropdown-content { min-width: 220px; left: auto; right: 0; }
+            .dropdown-btn { 
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+            .dropdown-content { 
+                min-width: 200px;
+                left: auto;
+                right: 0;
+            }
+            
+            /* Mobile alert bar styles */
+            .mesonet-alert-bar {
+                padding: 10px 0;
+                top: 3.5rem;
+            }
+
+            .mesonet-alert-prefix {
+                padding: 0 10px;
+                font-size: 0.8rem;
+                min-width: 130px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 130px;
+                animation: scroll-text 30s linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.8rem;
+            }
+
+            /* Mesonet widget mobile responsiveness */
+            .mesonet-header {
+                font-size: 1.3rem;
+                margin-bottom: 12px;
+            }
+
+            .mesonet-content {
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.95rem;
+            }
+
+            #lyndon-weather {
+                max-width: 90% !important;
+                padding: 18px !important;
+                margin: 18px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Ultra-narrow/small phone displays (max-width: 480px) */
+        @media (max-width: 480px) {
+            .top-nav {
+                padding: 0.5rem 0.4rem;
+                gap: 4px;
+            }
+
+            .clock-container {
+                gap: 6px;
+                padding: 0 4px;
+            }
+
+            .clock-item {
+                padding: 4px 8px;
+            }
+
+            .clock-label {
+                font-size: 0.5rem;
+            }
+
+            .time-display {
+                font-size: 0.8rem;
+            }
+
+            .nav-links a {
+                margin: 4px 6px;
+                font-size: 0.85rem;
+                padding: 4px 6px;
+            }
+
+            .dropdown-btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+
+            .dropdown-content {
+                min-width: 160px;
+                font-size: 0.85rem;
+            }
+
+            .main-wrapper {
+                padding: 8px;
+            }
+
+            .splash-container {
+                padding: 0.8rem;
+                width: 99%;
+            }
+
+            .logo-area h1 {
+                font-size: 1.2rem;
+                margin-bottom: 3px;
+            }
+
+            .logo-area h2 {
+                margin: 3px 0 10px 0;
+                font-size: 0.8rem;
+                padding-bottom: 3px;
+            }
+
+            #radar-loop {
+                width: 95vw;
+                max-height: 45vh;
+            }
+
+            .loop-frame {
+                padding: 6px 0;
+                margin: 0 auto 0.6rem auto;
+            }
+
+            .loop-controls {
+                font-size: 0.7rem;
+            }
+
+            .enter-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                margin-top: 8px;
+            }
+
+            footer {
+                font-size: 0.7rem;
+                padding: 0.5rem 0;
+            }
+
+            /* Mesonet mobile optimizations */
+            .mesonet-alert-prefix {
+                padding: 0 8px;
+                font-size: 0.75rem;
+                min-width: 110px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 110px;
+                animation: scroll-text 35s linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.75rem;
+            }
+
+            .mesonet-header {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+
+            .mesonet-content {
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.85rem;
+            }
+
+            #lyndon-weather {
+                max-width: 95% !important;
+                padding: 15px !important;
+                margin: 12px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Prevent overflow issues */
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow-x: hidden;
         }
 
         /* Rising stack animations */
@@ -439,6 +654,86 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes scroll-text {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .mesonet-alert-bar {
+            width: 100%;
+            padding: 12px 0;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: 4rem;
+            left: 0;
+            z-index: 9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        .mesonet-alert-bar.winter-advisory {
+            background-color: #7b68ee;
+        }
+
+        .mesonet-alert-bar.winter-warning {
+            background-color: #ff69b4;
+        }
+
+        .mesonet-alert-bar.winter-watch {
+            background-color: #8b9dc3;
+        }
+
+        .mesonet-alert-prefix {
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            padding: 0 15px;
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(to right, currentColor 0%, currentColor 100%);
+            background: inherit;
+            font-size: 0.95rem;
+        }
+
+        .mesonet-alert-content {
+            display: flex;
+            align-items: center;
+            animation: scroll-text 20s linear infinite;
+            white-space: nowrap;
+            margin-left: 180px;
+        }
+
+        .mesonet-alert-text {
+            color: white;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
             }
         }
 
@@ -619,9 +914,12 @@
                 });
             }
 
-            // Always default to radar view on page load
+            // Restore saved view on page load
             window.addEventListener('DOMContentLoaded', function() {
-                localStorage.removeItem('currentView');
+                const savedView = localStorage.getItem('currentView');
+                if (savedView === 'mesonet') {
+                    window.showMesonetWidget();
+                }
             });
         })();
 
@@ -660,6 +958,7 @@
                 if (!splashContainer) return;
 
                 splashContainer.innerHTML = `
+                    <div id="mesonet-alert-container"></div>
                     <div class="logo-area">
                         <h1>Vermont State University</h1>
                         <h2>Lyndon Weather Station</h2>
@@ -673,6 +972,7 @@
                 `;
 
                 fetchWeather();
+                fetchMesonetWinterAlerts();
                 if (weatherUpdateInterval) clearInterval(weatherUpdateInterval);
                 weatherUpdateInterval = setInterval(fetchWeather, 300000);
                 scheduleDailyReset();
@@ -748,6 +1048,59 @@
                             </a>
                         `;
                     }
+                }
+            };
+
+            window.fetchMesonetWinterAlerts = async function() {
+                try {
+                    const nwsUrl = 'https://api.weather.gov/alerts/active';
+                    const response = await fetch(nwsUrl);
+                    const data = await response.json();
+                    
+                    const winterAlertTypes = [
+                        'Winter Weather Advisory',
+                        'Winter Storm Warning',
+                        'Winter Storm Watch',
+                        'Tornado Watch'
+                    ];
+                    
+                    const lyndonAlerts = data.features.filter(feature => {
+                        const props = feature.properties;
+                        const isWinterAlert = winterAlertTypes.includes(props.event);
+                        const affectsLyndon = props.areaDesc && (
+                            props.areaDesc.includes('Caledonia') || 
+                            props.areaDesc.includes('Lyndonville') || 
+                            props.areaDesc.includes('St Johnsbury')
+                        );
+                        return isWinterAlert && affectsLyndon;
+                    });
+                    
+                    if (lyndonAlerts.length > 0) {
+                        const alert = lyndonAlerts[0];
+                        const alertType = alert.properties.event;
+                        const alertText = alert.properties.headline || `${alertType} issued`;
+                        
+                        let barClass = 'winter-advisory';
+                        if (alertType === 'Winter Storm Warning') {
+                            barClass = 'winter-warning';
+                        } else if (alertType === 'Winter Storm Watch') {
+                            barClass = 'winter-watch';
+                        }
+                        
+                        const alertContainer = document.getElementById('mesonet-alert-container');
+                        if (alertContainer) {
+                            alertContainer.innerHTML = `
+                                <div class="mesonet-alert-bar ${barClass}">
+                                    <span class="mesonet-alert-prefix">Local Weather Alerts:</span>
+                                    <div class="mesonet-alert-content">
+                                        <span class="mesonet-alert-text">${alertText}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Could not fetch winter alerts for mesonet:', err);
                 }
             };
 
@@ -967,8 +1320,8 @@
                 }
                 
                 div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 0 20px;">
-                        <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; padding: 0;">
+                        <div style="padding: 0 20px;">
                             <div style="font-size: 1.4rem; font-weight: bold; color: ${textColor};">
                                 ${displayText}
                             </div>
@@ -979,8 +1332,8 @@
                                 ${warning.cities}
                             </div>
                         </div>
-                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-left: auto; opacity: 0.65;">
-                            Dismiss
+                        <button onclick="closeWarning()" style="background: transparent; color: white; border: none; padding: 0 20px; cursor: pointer; font-size: 1.5rem; font-weight: bold; margin-right: 10px; opacity: 0.8; flex-shrink: 0; display: flex; align-items: center; height: 100%;">
+                            ×
                         </button>
                     </div>
                 `;
@@ -995,7 +1348,7 @@
                 }
                 
                 div.style.color = 'white';
-                div.style.padding = '15px 20px';
+                div.style.padding = '15px 0';
                 div.style.display = 'flex';
                 div.style.alignItems = 'center';
                 div.style.justifyContent = 'space-between';
@@ -1025,8 +1378,11 @@
             window.closeWarning = function() {
                 const div = document.getElementById('warning-notification');
                 if (div) {
-                    div.style.display = 'none';
-                    div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                    div.style.animation = 'fadeOut 0.5s ease-out forwards';
+                    setTimeout(() => {
+                        div.style.display = 'none';
+                        div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                    }, 500);
                 }
                 activeWarningId = null;
             };
