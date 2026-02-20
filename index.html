@@ -800,6 +800,7 @@
             let warningTimeout = null;
             let activeWarningId = null;
             let tornadoEmergencyTimeout = null;
+            let previousWarningState = {}; // Track radar vs observed state for upgrade detection
             const originalRadarSrc = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
             
             // NWS Office to nearest radar mapping
@@ -893,15 +894,24 @@
                             ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
                         ) || tornadoWarnings[0];
                         // Extract "Radar Indicated" or "Observed" from headline if present
-                        const radarOrObserved = localWarning.headline.includes('Radar Indicated') ? '(Radar Indicated)' : '(Observed)';
+                        const isRadarIndicated = localWarning.headline.includes('Radar Indicated');
+                        const isObserved = !isRadarIndicated;
+                        
+                        // Check if this is an upgrade from Radar Indicated to Observed (for internal tracking)
+                        const wasUpgraded = isObserved && previousWarningState[localWarning.id] === 'Radar Indicated';
+                        
+                        // Update previous state for next comparison
+                        previousWarningState[localWarning.id] = isRadarIndicated ? 'Radar Indicated' : 'Observed';
+                        
                         displayWarning({
                             type: 'Tornado Warning',
-                            displayEvent: `Tornado Warning ${radarOrObserved}`,
+                            displayEvent: `Tornado Warning (Observed)`,
                             issuingOffice: localWarning.issuingOffice,
                             issuedTime: localWarning.issuedTime,
                             cities: localWarning.cities,
                             local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
-                            id: localWarning.id
+                            id: localWarning.id,
+                            upgraded: wasUpgraded
                         });
                     } else if (severeThunderstormWarnings.length > 0) {
                         // Show local severe thunderstorm warning if available, or first one
@@ -969,7 +979,7 @@
                                 ${warning.cities}
                             </div>
                         </div>
-                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-left: auto; opacity: 0.65;">
                             Dismiss
                         </button>
                     </div>
@@ -1132,6 +1142,18 @@
                 displayWarning(testWarning);
             };
 
+            window.testSevereThunderstormContinuation = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning (Continuation)',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Chittenden, Addison, Rutland Counties, VT',
+                    id: `test-svr-tstm-continuation-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
             window.testRestoreRadar = function() {
                 restoreOriginalRadar();
                 console.log('Radar restored to original KCXX');
@@ -1182,7 +1204,9 @@
                 console.log('%ctestSevereThunderstorm()', 'color: #ffff00; font-weight: bold');
                 console.log('  → Display a Severe Thunderstorm Warning');
                 console.log('%ctestContinuation()', 'color: #00ff00; font-weight: bold');
-                console.log('  → Display a continuation warning');
+                console.log('  → Display a Tornado Warning continuation');
+                console.log('%ctestSevereThunderstormContinuation()', 'color: #ffff00; font-weight: bold');
+                console.log('  → Display a Severe Thunderstorm Warning continuation');
                 console.log('');
                 console.log('%c=== WARNING MANAGEMENT ===', 'color: #ffd500; font-weight: bold');
                 console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
@@ -1205,7 +1229,7 @@
 
             // Auto-show test commands on page load
             console.log('%cWARNING SYSTEM LOADED v2.1 (displayWarning exposed) - Type: showWarningTest()', 'color: #00A5B3; font-weight: bold; font-size: 12px');
-            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
+            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testSevereThunderstormContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
         })();
         (function() {
             const dropdowns = Array.from(document.querySelectorAll('.left-nav .dropdown'));
