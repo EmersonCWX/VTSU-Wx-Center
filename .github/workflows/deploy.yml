@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
   pages: write
-  id-token: write
 
 jobs:
   deploy:
@@ -16,9 +15,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Deploy to GitHub Pages
+        with:
+          fetch-depth: 0
+
+      - name: Deploy with Peaceiris
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ github.token }}
           publish_dir: ./
+          force_orphan: true
