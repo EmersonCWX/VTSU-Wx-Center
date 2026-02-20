@@ -721,6 +721,17 @@
                         <div>RADAR NWS KCXX (Burlington, VT)</div>
                     </div>
                 `;
+                
+                // Restart radar animation after DOM update
+                setTimeout(() => {
+                    setInterval(() => {
+                        const radarImg = document.getElementById('radar-loop');
+                        if (radarImg) {
+                            const currentSrc = radarImg.src.split('?')[0];
+                            radarImg.src = currentSrc + '?t=' + new Date().getTime();
+                        }
+                    }, 300000);
+                }, 100);
             };
         })();
 
@@ -803,6 +814,10 @@
 
                     // Check for tornado emergency (highest priority)
                     const tornadoEmergencies = warnings.filter(w => w.type === 'Tornado Emergency');
+                    // Check for tornado warnings
+                    const tornadoWarnings = warnings.filter(w => w.type === 'Tornado Warning');
+                    // Check for severe thunderstorm warnings
+                    const severeThunderstormWarnings = warnings.filter(w => w.type === 'Severe Thunderstorm Warning');
 
                     if (tornadoEmergencies.length > 0) {
                         const warning = tornadoEmergencies[0];
@@ -815,28 +830,33 @@
                             id: warning.id
                         });
                         switchRadarToWarningLocation(warning.issuingOffice);
-                    } else if (localWarnings.length > 0) {
-                        // Show local warning with emphasis
-                        const warning = localWarnings[0];
+                    } else if (tornadoWarnings.length > 0) {
+                        // Show local tornado warning if available, or first tornado warning
+                        const localWarning = tornadoWarnings.find(w => 
+                            ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
+                        ) || tornadoWarnings[0];
                         displayWarning({
-                            type: warning.type,
-                            displayEvent: warning.type,
-                            issuingOffice: warning.issuingOffice,
-                            issuedTime: warning.issuedTime,
-                            cities: warning.cities,
-                            local: true,
-                            id: warning.id
+                            type: 'Tornado Warning',
+                            displayEvent: 'Tornado Warning',
+                            issuingOffice: localWarning.issuingOffice,
+                            issuedTime: localWarning.issuedTime,
+                            cities: localWarning.cities,
+                            local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
+                            id: localWarning.id
                         });
-                    } else if (warnings.length > 0) {
-                        // Show any other warning
-                        const warning = warnings[0];
+                    } else if (severeThunderstormWarnings.length > 0) {
+                        // Show local severe thunderstorm warning if available, or first one
+                        const localWarning = severeThunderstormWarnings.find(w => 
+                            ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
+                        ) || severeThunderstormWarnings[0];
                         displayWarning({
-                            type: warning.type,
-                            displayEvent: warning.type,
-                            issuingOffice: warning.issuingOffice,
-                            issuedTime: warning.issuedTime,
-                            cities: warning.cities,
-                            id: warning.id
+                            type: 'Severe Thunderstorm Warning',
+                            displayEvent: 'Severe Thunderstorm Warning',
+                            issuingOffice: localWarning.issuingOffice,
+                            issuedTime: localWarning.issuedTime,
+                            cities: localWarning.cities,
+                            local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
+                            id: localWarning.id
                         });
                     }
                     lastWarnings = warnings;
