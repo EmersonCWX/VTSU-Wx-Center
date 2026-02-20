@@ -1,7 +1,5 @@
 # *VTSU Lyndon Weather Center*
 
-
-
 ## Features
 
 - **Live KCXX Radar**: Real-time radar loop from the National Weather Service Burlington radar
@@ -11,13 +9,13 @@
 
 ## *MAJOR BACK-END REBUILD OCCURED ON 2/20*
 ### Changelog: 
-Added VTSU Mesonet and 24 hour data logging, Made mobile friendly, Reduced code in places where bugs were occuring, added local and national warning system, *tried not to blow my head clean off*,  RTSW and AVC Now reflect proper Bz/Nt Values, AVC received a backend update allowing it to calculate time of CME impact and sunset times, corrected bug causing RTSW to display at times. 
+Added VTSU Mesonet and 24 hour data logging, Made mobile friendly, Reduced code in places where bugs were occuring, added local and national warning system, *tried not to blow my head clean off*,  RTSW and AVC Now reflect proper Bz/Nt Values, AVC received a backend update allowing it to calculate time of CME impact and sunset times, corrected bug causing RTSW not to display at times. 
 
 ## Upcoming Changes 
 ### Planned: Mobile friendly version, smoother ui navigation, AVC is now a standalone product and will recieve updates before standalone, Model viewer including grace cohens TRES system. 
 
 
 
-### *Coded by _Emerson Charles (she/her)*_
+### *Coded by Emerson Charles (she/her)*
 
 For questions or assistance: dxc00407@vsc.edu
