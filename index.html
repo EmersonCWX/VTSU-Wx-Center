@@ -5,14 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vermont State University Lyndon | Weather Center</title>
     <style>
+        /* ============================================================
+           CSS VARIABLES - Design System & Timing
+           ============================================================ */
         :root {
+            /* Brand Colors */
             --vtsu-turquoise: #00A5B3;
             --vtsu-red: #EC3754;
             --dark-gray: #1a1a1a;
             --white: #ffffff;
             --clock-bg: #2a2a2a;
+
+            /* Animation Timing */
+            --alert-fade-in-duration: 0.6s;
+            --alert-scroll-duration-desktop: 20s;
+            --alert-scroll-duration-tablet: 30s;
+            --alert-scroll-duration-mobile: 35s;
+            --transition-smooth: 0.3s ease;
+
+            /* Navigation Layout */
+            --nav-height-desktop: 4rem;
+            --nav-height-mobile: 11rem;
+            --alert-bar-top: var(--nav-height-desktop);
         }
 
+        /* ============================================================
+           GLOBAL STYLES
+           ============================================================ */
         body, html {
             margin: 0;
             padding: 0;
@@ -403,7 +422,7 @@
                 right: 0;
             }
             
-            /* Mobile alert bar styles */
+            /* Mobile alert bar - responsive positioning and animation timing */
             .mesonet-alert-bar {
                 padding: 10px 0;
                 top: 11rem;
@@ -417,7 +436,7 @@
 
             .mesonet-alert-content {
                 margin-left: 130px;
-                animation: scroll-text 30s linear infinite;
+                animation: scroll-text var(--alert-scroll-duration-tablet) linear infinite;
             }
 
             .mesonet-alert-text {
@@ -551,9 +570,13 @@
                 font-size: 0.75rem;
             }
 
-            /* Adjust alert bar position for small phones */
+            /* Ultra-small device alert bar positioning and animation */
             .mesonet-alert-bar {
                 top: 10rem;
+            }
+
+            .mesonet-alert-content {
+                animation: scroll-text var(--alert-scroll-duration-mobile) linear infinite;
             }
 
             .mesonet-header {
@@ -679,11 +702,11 @@
             display: flex;
             align-items: center;
             position: fixed;
-            top: 4rem;
+            top: var(--alert-bar-top);
             left: 0;
             z-index: 9;
             box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-            animation: fadeIn 0.6s ease-in;
+            animation: fadeIn var(--alert-fade-in-duration) ease-in;
         }
 
         .mesonet-alert-bar.winter-advisory {
@@ -705,7 +728,6 @@
             padding: 0 15px;
             position: relative;
             z-index: 10;
-            background: linear-gradient(to right, currentColor 0%, currentColor 100%);
             background: inherit;
             font-size: 0.95rem;
         }
@@ -713,7 +735,7 @@
         .mesonet-alert-content {
             display: flex;
             align-items: center;
-            animation: scroll-text 20s linear infinite;
+            animation: scroll-text var(--alert-scroll-duration-desktop) linear infinite;
             white-space: nowrap;
             margin-left: 180px;
         }
@@ -935,6 +957,17 @@
             const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
             let weatherUpdateInterval = null;
             let dailyResetTimeout = null;
+            let lastObservationTime = null; // Track the last observation timestamp
+            
+            /* Store latest weather data for CoCoRaHS integration */
+            let latestWeatherData = {
+                temperature: 'N/A',
+                windSpeed: 'N/A',
+                windDirection: 'N/A',
+                windDirectionCompass: 'N/A',
+                pressure: 'N/A',
+                humidity: 'N/A'
+            };
 
             function getTimeUntilNextReset() {
                 const now = new Date();
@@ -957,6 +990,33 @@
                 }, timeUntilReset);
             }
 
+            /**
+             * Converts wind direction from degrees to compass letters
+             * @param {number} degrees - Wind direction in degrees (0-360)
+             * @returns {string} Compass direction (e.g., "N", "NE", "E", etc.)
+             */
+            function getCompassDirection(degrees) {
+                if (degrees === null || degrees === undefined || degrees === 'N/A') return 'N/A';
+                
+                const compassPoints = [
+                    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'
+                ];
+                
+                const num = parseInt(degrees);
+                const index = Math.round(num / 22.5) % 16;
+                return compassPoints[index];
+            }
+
+            /**
+             * Initializes and displays the Lyndon Weather Station mesonet widget.
+             * Loads real-time weather data from Synoptic Data API and active
+             * winter weather alerts from NWS API. Persists view state in localStorage.
+             * 
+             * Data sources:
+             * - Synoptic Data API: LSC01 (Lyndon State College station)
+             * - NWS Weather Alerts API: Real-time weather alerts
+             */
             window.showMesonetWidget = function() {
                 localStorage.setItem('currentView', 'mesonet');
                 const splashContainer = document.querySelector('.splash-container');
@@ -983,6 +1043,18 @@
                 scheduleDailyReset();
             };
 
+            /**
+             * Fetches real-time weather observations from Lyndon weather station.
+             * Data from Synoptic Data API (Station ID: LSC01)
+             * 
+             * Parameters queried:
+             * - air_temp_value_1: Temperature (Fahrenheit)
+             * - wind_speed_value_1: Wind speed (mph)
+             * - relative_humidity_value_1: Relative humidity (%)
+             * - wind_direction_value_1: Wind direction (degrees)
+             * 
+             * Uses CORS proxy as fallback for cross-origin requests
+             */
             window.fetchWeather = async function() {
                 const weatherDiv = document.getElementById('lyndon-weather');
                 try {
@@ -1016,10 +1088,46 @@
                     const wind = obs.wind_speed_value_1?.value || 'N/A';
                     const humidity = obs.relative_humidity_value_1?.value || 'N/A';
                     const windDir = obs.wind_direction_value_1?.value || 'N/A';
+                    
+                    /* Pull pressure value and convert to hPa/millibars */
+                    let pressureRaw = obs.altimeter_value_1?.value 
+                        || obs.sea_level_pres_value_1?.value 
+                        || obs.pres_value_1?.value 
+                        || 'N/A';
+                    let pressure = 'N/A';
+                    if (pressureRaw !== 'N/A') {
+                        /* If value is in inHg (28-31 range), convert to hPa by multiplying by 33.864 */
+                        /* If already in hPa/Pascals (>1000), divide by 100 if needed */
+                        let pressureHpa = pressureRaw < 100 ? (pressureRaw * 33.864) : (pressureRaw > 1000 ? pressureRaw / 100 : pressureRaw);
+                        pressure = pressureHpa.toFixed(1);
+                    }
+                    
+                    /* Store latest weather data for CoCoRaHS integration */
+                    latestWeatherData.temperature = temp;
+                    latestWeatherData.windSpeed = wind;
+                    latestWeatherData.windDirection = windDir;
+                    latestWeatherData.windDirectionCompass = getCompassDirection(windDir);
+                    latestWeatherData.pressure = pressure;
+                    latestWeatherData.humidity = humidity;
 
-                    const now = new Date();
-                    const fetchTime24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const zuluTime = now.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                    /* Extract observation timestamp from API - use the time data was actually collected */
+                    const obsTime = obs.air_temp_value_1?.date_time || obs.wind_speed_value_1?.date_time || obs.relative_humidity_value_1?.date_time;
+                    
+                    /* Only update display if we have new data from the station */
+                    let fetchTime24 = 'N/A';
+                    let zuluTime = 'N/A';
+                    
+                    if (obsTime && obsTime !== lastObservationTime) {
+                        lastObservationTime = obsTime;
+                        const obsDate = new Date(obsTime);
+                        fetchTime24 = obsDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        zuluTime = obsDate.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                    } else if (lastObservationTime) {
+                        /* Use previously saved timestamp if no new data */
+                        const prevDate = new Date(lastObservationTime);
+                        fetchTime24 = prevDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        zuluTime = prevDate.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                    }
 
                     if (weatherDiv) {
                         weatherDiv.innerHTML = `
@@ -1028,7 +1136,7 @@
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                     <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp}°F</div>
                                     <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind} mph</div>
-                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${windDir}°</div>
+                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${getCompassDirection(windDir)} ${windDir === 'N/A' ? '' : '(' + windDir + '°)'}</div>
                                     <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity}%</div>
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
@@ -1036,6 +1144,9 @@
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
                                     <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data →</a>
+                                </div>
+                                <div style="margin-top: 12px; text-align: center;">
+                                    <a href="#" onclick="openCoCoRaHSWithData(event)" style="color: var(--vtsu-turquoise); text-decoration: underline;">Report to CoCoRaHS (Login Required) →</a>
                                 </div>
                             </div>
                         `;
@@ -1055,13 +1166,24 @@
                     }
                 }
             };
-
+            /**
+             * Fetches active winter weather alerts from NWS API and displays
+             * them on the Lyndon Weather Station page. Filters alerts by:
+             * - Alert type (Winter Advisory, Warning, Watch, Tornado Watch)
+             * - Geographic location (Caledonia County area)
+             * 
+             * Color coding:
+             * - #7b68ee (Blue Violet): Winter Weather Advisory
+             * - #ff69b4 (Hot Pink): Winter Storm Warning (highest severity)
+             * - #8b9dc3 (Light Blue Gray): Winter Storm Watch
+             */
             window.fetchMesonetWinterAlerts = async function() {
                 try {
                     const nwsUrl = 'https://api.weather.gov/alerts/active';
                     const response = await fetch(nwsUrl);
                     const data = await response.json();
                     
+                    /* Priority-ordered alert types to monitor */
                     const winterAlertTypes = [
                         'Winter Weather Advisory',
                         'Winter Storm Warning',
@@ -1069,6 +1191,7 @@
                         'Tornado Watch'
                     ];
                     
+                    /* Filter alerts affecting Lyndon/Caledonia County area */
                     const lyndonAlerts = data.features.filter(feature => {
                         const props = feature.properties;
                         const isWinterAlert = winterAlertTypes.includes(props.event);
@@ -1085,6 +1208,7 @@
                         const alertType = alert.properties.event;
                         const alertText = alert.properties.headline || `${alertType} issued`;
                         
+                        /* Map alert severity to color-coded UI class */
                         let barClass = 'winter-advisory';
                         if (alertType === 'Winter Storm Warning') {
                             barClass = 'winter-warning';
@@ -1107,6 +1231,28 @@
                 } catch (err) {
                     console.log('Could not fetch winter alerts for mesonet:', err);
                 }
+            };
+
+            /**
+             * Copies latest weather data to clipboard and opens CoCoRaHS reporting page
+             * User can then paste the data into the Observation Notes field
+             */
+            window.openCoCoRaHSWithData = function(event) {
+                event.preventDefault();
+                
+                /* Generate observation notes with latest weather data */
+                const obsNotes = `Conditions at Observation time:\nTemperature: ${latestWeatherData.temperature}°F\nWind Speed: ${latestWeatherData.windSpeed} m/s\nWind Direction: ${latestWeatherData.windDirectionCompass} (${latestWeatherData.windDirection}°)\nPressure: ${latestWeatherData.pressure} hPa\nHumidity: ${latestWeatherData.humidity}%`;
+                
+                /* Copy weather data to clipboard */
+                navigator.clipboard.writeText(obsNotes).then(() => {
+                    console.log('Station data copied to clipboard');
+                    /* Open CoCoRaHS reporting page */
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                }).catch(err => {
+                    console.error('Failed to copy to clipboard:', err);
+                    alert('Could not copy to clipboard. Here is your station data:\n\n' + obsNotes);
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                });
             };
 
             window.resetToRadar = function() {
@@ -1148,6 +1294,9 @@
                         }
                     }, 300000);
                 }, 100);
+
+                /* Fetch and display alerts when returning to main weather page */
+                // Alerts only shown on Lyndon Weather Station page
             };
         })();
 
