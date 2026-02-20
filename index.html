@@ -991,12 +991,6 @@
                 }, dismissTime);
             }
 
-                const dismissTime = warning.type === 'Tornado Emergency' ? 15000 : 10000;
-                warningTimeout = setTimeout(() => {
-                    closeWarning();
-                }, dismissTime);
-            }
-
             // Close warning notification
             window.closeWarning = function() {
                 const div = document.getElementById('warning-notification');
