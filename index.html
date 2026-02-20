@@ -472,6 +472,7 @@
             <span class="nav-disabled" aria-disabled="true">HREFv2</span>
             <a href="#" id="btn-ecmwf" data-url="https://www.pivotalweather.com/model.php?m=ecmwf_full&p=prateptype_cat_ecmwf-imp&rh=2026021612&fh=12&r=us_ne&dpdt=&mc=">ECMWF</a>
             <a href="#" id="btn-hrrr" data-url="https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=">HRRR</a>
+            <a href="#" id="btn-mesonet" data-url="https://atmos.northernvermont.edu/weather-data/weather-station/">VTSU Mesonet</a>
 
         </div>
         
@@ -548,6 +549,15 @@
                 hrrrBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     const url = hrrrBtn.dataset.url || 'https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const mesonetBtn = document.getElementById('btn-mesonet');
+            if (mesonetBtn) {
+                mesonetBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = mesonetBtn.dataset.url || 'https://atmos.northernvermont.edu/weather-data/weather-station/';
                     window.open(url, '_blank', 'noopener,noreferrer');
                 });
             }
