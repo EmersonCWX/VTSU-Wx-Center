@@ -816,7 +816,7 @@
 
             // Fetch warnings from NWS API
             function fetchWarnings() {
-                const nwsUrl = 'https://api.weather.gov/alerts/active?area=VT,NH,MA,CT,RI,ME';
+                const nwsUrl = 'https://api.weather.gov/alerts/active';
                 
                 // Determine if we need CORS proxy
                 let apiUrl;
@@ -1148,7 +1148,7 @@
 
             window.checkLiveAPI = function() {
                 console.log('%c=== Checking Live NWS API ===', 'color: #00ff00; font-weight: bold');
-                const nwsUrl = 'https://api.weather.gov/alerts/active?area=VT,NH,MA,CT,RI,ME';
+                const nwsUrl = 'https://api.weather.gov/alerts/active';
                 const encodedUrl = encodeURIComponent(nwsUrl);
                 const apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
                 
