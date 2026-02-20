@@ -567,9 +567,12 @@
             const localOptions = { hour12: !use24Hour, hour: '2-digit', minute: '2-digit', second: '2-digit' };
             document.getElementById('local-clock').textContent = now.toLocaleTimeString('en-US', localOptions);
 
-            const zuluOptions = { timeZone: 'UTC', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            const zuluTime = now.toLocaleTimeString('en-US', zuluOptions);
-            document.getElementById('zulu-clock').textContent = `${zuluTime}Z`;
+            // Get UTC time directly using getUTC methods for reliability
+            const utcHours = String(now.getUTCHours()).padStart(2, '0');
+            const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+            const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
+            const zuluTime = `${utcHours}:${utcMinutes}:${utcSeconds}Z`;
+            document.getElementById('zulu-clock').textContent = zuluTime;
         }
 
         setInterval(updateClocks, 1000);
@@ -889,9 +892,11 @@
                         const localWarning = tornadoWarnings.find(w => 
                             ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
                         ) || tornadoWarnings[0];
+                        // Extract "Radar Indicated" or "Observed" from headline if present
+                        const radarOrObserved = localWarning.headline.includes('Radar Indicated') ? '(Radar Indicated)' : '(Observed)';
                         displayWarning({
                             type: 'Tornado Warning',
-                            displayEvent: 'Tornado Warning',
+                            displayEvent: `Tornado Warning ${radarOrObserved}`,
                             issuingOffice: localWarning.issuingOffice,
                             issuedTime: localWarning.issuedTime,
                             cities: localWarning.cities,
@@ -903,9 +908,11 @@
                         const localWarning = severeThunderstormWarnings.find(w => 
                             ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
                         ) || severeThunderstormWarnings[0];
+                        // Include severity level (Considerable, Destructive, etc)
+                        const severity = localWarning.severity ? ` - ${localWarning.severity}` : '';
                         displayWarning({
                             type: 'Severe Thunderstorm Warning',
-                            displayEvent: 'Severe Thunderstorm Warning',
+                            displayEvent: `Severe Thunderstorm Warning${severity}`,
                             issuingOffice: localWarning.issuingOffice,
                             issuedTime: localWarning.issuedTime,
                             cities: localWarning.cities,
