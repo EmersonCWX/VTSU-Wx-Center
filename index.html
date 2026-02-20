@@ -409,6 +409,60 @@
         .mesonet-data-item:nth-child(2) { animation-delay: 0.4s; }
         .mesonet-data-item:nth-child(3) { animation-delay: 0.5s; }
         .mesonet-data-item:nth-child(4) { animation-delay: 0.6s; }
+
+        /* Warning banner animations - Severity-based */
+        @keyframes tornadoEmergencyPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8), inset 0 0 10px rgba(255, 0, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(255, 0, 0, 1), inset 0 0 15px rgba(255, 0, 0, 0.5);
+            }
+        }
+
+        @keyframes tornadoWarningSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes severeThunderstormSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #warning-notification {
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            margin: 0;
+        }
+
+        #warning-notification.tornado-emergency {
+            animation: tornadoEmergencyPulse 0.6s ease-in-out infinite, tornadoWarningSlide 0.5s ease-out;
+        }
+
+        #warning-notification.tornado-warning {
+            animation: tornadoWarningSlide 0.5s ease-out;
+        }
+
+        #warning-notification.severe-thunderstorm {
+            animation: severeThunderstormSlide 0.4s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -879,11 +933,13 @@
 
                 const isLocal = warning.local || warning.cities.includes('St Johnsbury') || warning.cities.includes('Lyndonville') || warning.cities.includes('Caledonia');
                 const displayText = isLocal ? 'SEEK SHELTER NOW' : `${warning.displayEvent || warning.type}`;
+                const isTornadoEmergency = warning.type === 'Tornado Emergency';
+                const isTornadoWarning = warning.type === 'Tornado Warning';
                 
                 div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 0 20px;">
                         <div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: ${isLocal ? '#FF6B6B' : '#FFD700'};">
+                            <div style="font-size: 1.4rem; font-weight: bold; color: ${isLocal ? '#FF6B6B' : '#FFD700'};">
                                 ${displayText}
                             </div>
                             <div style="font-size: 0.9rem; color: #ccc; margin-top: 5px;">
@@ -893,20 +949,47 @@
                                 ${warning.cities}
                             </div>
                         </div>
-                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
                             Dismiss
                         </button>
                     </div>
                 `;
                 
-                div.style.display = 'flex';
-                div.style.backgroundColor = isLocal ? '#8B0000' : '#FF8C00';
+                // Set background based on severity
+                if (isTornadoEmergency) {
+                    div.style.backgroundColor = '#8B0000';
+                } else if (isTornadoWarning) {
+                    div.style.backgroundColor = isLocal ? '#8B0000' : '#FF4500';
+                } else {
+                    div.style.backgroundColor = '#FF8C00';
+                }
+                
                 div.style.color = 'white';
                 div.style.padding = '15px 20px';
-                div.style.borderRadius = '4px';
-                div.style.marginBottom = '15px';
+                div.style.display = 'flex';
                 div.style.alignItems = 'center';
                 div.style.justifyContent = 'space-between';
+                div.style.borderBottom = isTornadoEmergency ? '4px solid #FF0000' : '2px solid rgba(255,255,255,0.3)';
+                div.style.borderRadius = '0';
+                div.style.marginBottom = '0';
+
+                // Remove all animation classes first
+                div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                
+                // Apply appropriate animation class based on severity
+                if (isTornadoEmergency) {
+                    div.classList.add('tornado-emergency');
+                } else if (isTornadoWarning) {
+                    div.classList.add('tornado-warning');
+                } else {
+                    div.classList.add('severe-thunderstorm');
+                }
+
+                const dismissTime = isTornadoEmergency ? 20000 : (isTornadoWarning ? 15000 : 10000);
+                warningTimeout = setTimeout(() => {
+                    closeWarning();
+                }, dismissTime);
+            }
 
                 const dismissTime = warning.type === 'Tornado Emergency' ? 15000 : 10000;
                 warningTimeout = setTimeout(() => {
@@ -919,6 +1002,7 @@
                 const div = document.getElementById('warning-notification');
                 if (div) {
                     div.style.display = 'none';
+                    div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
                 }
                 activeWarningId = null;
             };
