@@ -479,6 +479,7 @@
     </nav>
 
     <div class="main-wrapper">
+        <div id="warning-notification" style="display: none;"></div>
         <div class="splash-container">
             <div class="logo-area">
                 <h1>Vermont State University</h1>
@@ -753,7 +754,372 @@
             }
         })();
 
-        // Dropdown click behavior: support multiple dropdowns, toggle on click, close others
+        // Warning System - Fetch and display severe weather warnings
+        (function() {
+            console.log('%c[DEBUG] Warning System IIFE starting...', 'color: #ff00ff; font-weight: bold');
+            let lastWarnings = {};
+            let warningTimeout = null;
+            let activeWarningId = null;
+            let tornadoEmergencyTimeout = null;
+            const originalRadarSrc = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
+            
+            // NWS Office to nearest radar mapping
+            const officeToRadar = {
+                'KJKL': 'KJKX',  // Jackson, KY
+                'KILX': 'KILX',  // Lincoln, IL
+                'KPBZ': 'KPBZ',  // Pittsburg, PA
+                'KLMK': 'KLMK',  // Louisville, KY
+                'KOUN': 'KOUN',  // Norman, OK
+                'KTLX': 'KTLX',  // Tulsa, OK
+                'KVTX': 'KVTX',  // Fort Worth, TX
+                'KMEG': 'KMEG'   // Memphis, TN
+            };
+
+            // Fetch warnings from NWS API
+            function fetchWarnings() {
+                const nwsUrl = 'https://api.weather.gov/alerts/active?area=VT,NH,MA,CT,RI,ME';
+                
+                // Determine if we need CORS proxy
+                let apiUrl;
+                if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                    // Local development - direct API call
+                    apiUrl = nwsUrl;
+                } else {
+                    // GitHub Pages - use CORS proxy
+                    const encodedUrl = encodeURIComponent(nwsUrl);
+                    apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                }
+
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Warnings data received:', data);
+                        parseWarningsFromJSON(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching warnings:', error);
+                    });
+            }
+
+            // Parse warnings from NWS JSON response
+            function parseWarningsFromJSON(data) {
+                try {
+                    if (!data.features || data.features.length === 0) {
+                        console.log('No active warnings');
+                        // If no warnings, clear any displayed warning
+                        if (Object.keys(lastWarnings).length === 0) {
+                            closeWarning();
+                        }
+                        return;
+                    }
+
+                    const warnings = data.features.map(feature => ({
+                        type: feature.properties.event,
+                        headline: feature.properties.headline,
+                        description: feature.properties.description,
+                        severity: feature.properties.severity,
+                        issuingOffice: feature.properties.senderName,
+                        areaDescription: feature.properties.areaDesc,
+                        issuedTime: new Date(feature.properties.sent).toLocaleTimeString('en-US', { hour12: false, timeZone: 'UTC' }) + 'Z',
+                        cities: feature.properties.areaDesc || 'N/A',
+                        id: feature.properties.id
+                    }));
+
+                    // Check for local warnings (containing specific Vermont cities/towns)
+                    const localTriggers = ['St Johnsbury', 'Lyndonville', 'Caledonia', 'Danville'];
+                    const localWarnings = warnings.filter(w => 
+                        localTriggers.some(trigger => w.cities.includes(trigger))
+                    );
+
+                    // Check for tornado emergency (highest priority)
+                    const tornadoEmergencies = warnings.filter(w => w.type === 'Tornado Emergency');
+
+                    if (tornadoEmergencies.length > 0) {
+                        const warning = tornadoEmergencies[0];
+                        displayWarning({
+                            type: 'Tornado Emergency',
+                            displayEvent: 'Tornado Emergency (Observed)',
+                            issuingOffice: warning.issuingOffice,
+                            issuedTime: warning.issuedTime,
+                            cities: warning.cities,
+                            id: warning.id
+                        });
+                        switchRadarToWarningLocation(warning.issuingOffice);
+                    } else if (localWarnings.length > 0) {
+                        // Show local warning with emphasis
+                        const warning = localWarnings[0];
+                        displayWarning({
+                            type: warning.type,
+                            displayEvent: warning.type,
+                            issuingOffice: warning.issuingOffice,
+                            issuedTime: warning.issuedTime,
+                            cities: warning.cities,
+                            local: true,
+                            id: warning.id
+                        });
+                    } else if (warnings.length > 0) {
+                        // Show any other warning
+                        const warning = warnings[0];
+                        displayWarning({
+                            type: warning.type,
+                            displayEvent: warning.type,
+                            issuingOffice: warning.issuingOffice,
+                            issuedTime: warning.issuedTime,
+                            cities: warning.cities,
+                            id: warning.id
+                        });
+                    }
+                    lastWarnings = warnings;
+                } catch (error) {
+                    console.error('Error parsing warnings:', error);
+                }
+            }
+
+            // Display warning notification
+            function displayWarning(warning) {
+                // Only show if it's different from the last one
+                if (activeWarningId === warning.id) return;
+                activeWarningId = warning.id;
+
+                // Clear any existing timeout
+                if (warningTimeout) clearTimeout(warningTimeout);
+
+                const div = document.getElementById('warning-notification');
+                if (!div) return;
+
+                const isLocal = warning.local || warning.cities.includes('St Johnsbury') || warning.cities.includes('Lyndonville') || warning.cities.includes('Caledonia');
+                const displayText = isLocal ? 'SEEK SHELTER NOW' : `${warning.displayEvent || warning.type}`;
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${isLocal ? '#FF6B6B' : '#FFD700'};">
+                                ${displayText}
+                            </div>
+                            <div style="font-size: 0.9rem; color: #ccc; margin-top: 5px;">
+                                ${warning.type} | Issued: ${warning.issuedTime}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #aaa; margin-top: 3px;">
+                                ${warning.cities}
+                            </div>
+                        </div>
+                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                            Dismiss
+                        </button>
+                    </div>
+                `;
+                
+                div.style.display = 'flex';
+                div.style.backgroundColor = isLocal ? '#8B0000' : '#FF8C00';
+                div.style.color = 'white';
+                div.style.padding = '15px 20px';
+                div.style.borderRadius = '4px';
+                div.style.marginBottom = '15px';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+
+                const dismissTime = warning.type === 'Tornado Emergency' ? 15000 : 10000;
+                warningTimeout = setTimeout(() => {
+                    closeWarning();
+                }, dismissTime);
+            }
+
+            // Close warning notification
+            window.closeWarning = function() {
+                const div = document.getElementById('warning-notification');
+                if (div) {
+                    div.style.display = 'none';
+                }
+                activeWarningId = null;
+            };
+
+            // Expose displayWarning to window so test functions and console can call it
+            window.displayWarning = displayWarning;
+            console.log('%c[DEBUG] displayWarning exposed to window', 'color: #00ff00; font-weight: bold');
+
+            function switchRadarToWarningLocation(officeCode) {
+                const radarImg = document.getElementById('radar-loop');
+                const radarCode = officeToRadar[officeCode] || 'KCXX';
+                const newRadarSrc = `https://radar.weather.gov/ridge/standard/${radarCode}_loop.gif`;
+                
+                // Clear any existing tornado emergency timeout
+                if (tornadoEmergencyTimeout) {
+                    clearTimeout(tornadoEmergencyTimeout);
+                }
+                
+                radarImg.src = newRadarSrc;
+                
+                // Keep the custom radar for 30 minutes from the tornado emergency
+                tornadoEmergencyTimeout = setTimeout(() => {
+                    restoreOriginalRadar();
+                    tornadoEmergencyTimeout = null;
+                }, 1800000); // 30 minutes
+            }
+
+            function restoreOriginalRadar() {
+                const radarImg = document.getElementById('radar-loop');
+                radarImg.src = originalRadarSrc + '?t=' + new Date().getTime();
+                if (tornadoEmergencyTimeout) {
+                    clearTimeout(tornadoEmergencyTimeout);
+                    tornadoEmergencyTimeout = null;
+                }
+            }
+
+            // Fetch warnings every 30 seconds
+            fetchWarnings();
+            setInterval(fetchWarnings, 30000);
+
+            // TEST FUNCTIONS - Call from browser console
+            window.testTornadoEmergency = function(office = 'KOUN', cities = 'Canadian, Texas, Beaver, Beaver (Oklahoma)') {
+                const testWarning = {
+                    type: 'Tornado Emergency',
+                    displayEvent: 'Tornado Emergency (Observed)',
+                    issuingOffice: office,
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: cities,
+                    id: `test-tornado-emergency-${Date.now()}`
+                };
+                displayWarning(testWarning);
+                switchRadarToWarningLocation(office);
+            };
+
+            window.testLocalTornadoWarning = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'St Johnsbury, Lyndonville, Caledonia, Danville, VT',
+                    local: true,
+                    id: `test-local-tornado-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testLocalSevereWarning = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'St Johnsbury, Lyndonville, Caledonia, VT',
+                    local: true,
+                    id: `test-local-severe-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testTornadoWarning = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Orleans, Essex, Caledonia Counties, VT',
+                    id: `test-tornado-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testSevereThunderstorm = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Chittenden, Addison, Rutland Counties, VT',
+                    id: `test-svr-tstm-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testContinuation = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning (Continuation)',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Multiple areas',
+                    id: `test-continuation-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testRestoreRadar = function() {
+                restoreOriginalRadar();
+                console.log('Radar restored to original KCXX');
+            };
+
+            window.clearStuckWarning = function() {
+                activeWarningId = null;
+                if (warningTimeout) clearTimeout(warningTimeout);
+                if (tornadoEmergencyTimeout) clearTimeout(tornadoEmergencyTimeout);
+                closeWarning();
+                restoreOriginalRadar();
+                console.log('Warning system reset');
+            };
+
+            window.checkLiveAPI = function() {
+                console.log('%c=== Checking Live NWS API ===', 'color: #00ff00; font-weight: bold');
+                const nwsUrl = 'https://api.weather.gov/alerts/active?area=VT,NH,MA,CT,RI,ME';
+                const encodedUrl = encodeURIComponent(nwsUrl);
+                const apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                
+                fetch(apiUrl)
+                    .then(r => r.json())
+                    .then(data => {
+                        console.log('Live API Response:', data);
+                        console.log('Number of warnings:', data.features ? data.features.length : 0);
+                        if (data.features && data.features.length > 0) {
+                            console.log('First warning:', data.features[0].properties.event);
+                        }
+                    })
+                    .catch(e => console.error('API Error:', e));
+            };
+
+            window.showWarningTest = function() {
+                console.clear();
+                console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #00A5B3; font-size: 14px');
+                console.log('%c║         VTSU Lyndon Weather Center - Warning System        ║', 'color: #00A5B3; font-size: 14px');
+                console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #00A5B3; font-size: 14px');
+                console.log('');
+                console.log('%c=== TEST FUNCTIONS ===', 'color: #ffff00; font-weight: bold');
+                console.log('%ctestTornadoEmergency(office, cities)', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a Tornado Emergency alert');
+                console.log('%ctestLocalTornadoWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a local Tornado Warning (St Johnsbury area)');
+                console.log('%ctestLocalSevereWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a local Severe Thunderstorm Warning');
+                console.log('%ctestTornadoWarning()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Display a Tornado Warning');
+                console.log('%ctestSevereThunderstorm()', 'color: #ffff00; font-weight: bold');
+                console.log('  → Display a Severe Thunderstorm Warning');
+                console.log('%ctestContinuation()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Display a continuation warning');
+                console.log('');
+                console.log('%c=== WARNING MANAGEMENT ===', 'color: #ffd500; font-weight: bold');
+                console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Clear any stuck warning and reset system state');
+                console.log('%ctestRestoreRadar()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Restores radar to original KCXX');
+                console.log('');
+                console.log('%c=== DEBUGGING UTILITIES ===', 'color: #ffd500; font-weight: bold');
+                console.log('%ccheckLiveAPI()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Check what warnings the NWS API is currently sending');
+                console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Clear any stuck warning and reset system state');
+                console.log('');
+                console.log('%c=== LOCAL AREA TRIGGER KEYWORDS ===', 'color: #ffff00; font-size: 12px');
+                console.log('Warning will show "SEEK SHELTER NOW" if it includes: St Johnsbury, Lyndonville, or Caledonia (VT)');
+                console.log('');
+                console.log('%c=== NWS OFFICE CODES ===', 'color: #ff6b6b; font-size: 12px');
+                console.log('KOUN (Oklahoma), KILX (Illinois), KPBZ (Pennsylvania), KLMK (Kentucky), KTLX (Oklahoma), KVTX (Texas), KMEG (Tennessee)');
+            };
+
+            // Auto-show test commands on page load
+            console.log('%cWARNING SYSTEM LOADED v2.1 (displayWarning exposed) - Type: showWarningTest()', 'color: #00A5B3; font-weight: bold; font-size: 12px');
+            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
+        })();
         (function() {
             const dropdowns = Array.from(document.querySelectorAll('.left-nav .dropdown'));
             if (!dropdowns.length) return;

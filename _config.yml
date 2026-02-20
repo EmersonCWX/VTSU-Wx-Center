@@ -4,8 +4,8 @@
 # Site Settings
 title: "VTSU Lyndon Weather Center"
 description: "Vermont State University Lyndon Weather Center - Real-time radar, forecasts, and weather data"
-url: "https://github.com/EmersonCWX"  # Update with your GitHub Pages URL
-baseurl: "/repository-name"  # Update if repo is not your user site (e.g., "/weather-center")
+url: "https://emersoncwx.github.io"  # GitHub Pages URL
+baseurl: "/VTSU-Wx-Center"  # Correct repository name path
 
 # Build Settings
 theme: null  # Using custom CSS
