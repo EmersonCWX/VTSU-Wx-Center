@@ -413,10 +413,10 @@
         /* Warning banner animations - Severity-based */
         @keyframes tornadoEmergencyPulse {
             0%, 100% {
-                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8), inset 0 0 10px rgba(255, 0, 0, 0.3);
+                box-shadow: 0 0 20px rgba(128, 0, 128, 0.8), inset 0 0 10px rgba(128, 0, 128, 0.3);
             }
             50% {
-                box-shadow: 0 0 30px rgba(255, 0, 0, 1), inset 0 0 15px rgba(255, 0, 0, 0.5);
+                box-shadow: 0 0 30px rgba(128, 0, 128, 1), inset 0 0 15px rgba(128, 0, 128, 0.5);
             }
         }
 
@@ -454,6 +454,7 @@
 
         #warning-notification.tornado-emergency {
             animation: tornadoEmergencyPulse 0.6s ease-in-out infinite, tornadoWarningSlide 0.5s ease-out;
+            border-bottom-color: #800080 !important;
         }
 
         #warning-notification.tornado-warning {
@@ -883,7 +884,6 @@
                             cities: warning.cities,
                             id: warning.id
                         });
-                        switchRadarToWarningLocation(warning.issuingOffice);
                     } else if (tornadoWarnings.length > 0) {
                         // Show local tornado warning if available, or first tornado warning
                         const localWarning = tornadoWarnings.find(w => 
@@ -957,7 +957,7 @@
                 
                 // Set background based on severity
                 if (isTornadoEmergency) {
-                    div.style.backgroundColor = '#8B0000';
+                    div.style.backgroundColor = '#800080';
                 } else if (isTornadoWarning) {
                     div.style.backgroundColor = isLocal ? '#8B0000' : '#FF4500';
                 } else {
@@ -969,7 +969,7 @@
                 div.style.display = 'flex';
                 div.style.alignItems = 'center';
                 div.style.justifyContent = 'space-between';
-                div.style.borderBottom = isTornadoEmergency ? '4px solid #FF0000' : '2px solid rgba(255,255,255,0.3)';
+                div.style.borderBottom = isTornadoEmergency ? '4px solid #800080' : '2px solid rgba(255,255,255,0.3)';
                 div.style.borderRadius = '0';
                 div.style.marginBottom = '0';
 
@@ -1048,7 +1048,6 @@
                     id: `test-tornado-emergency-${Date.now()}`
                 };
                 displayWarning(testWarning);
-                switchRadarToWarningLocation(office);
             };
 
             window.testLocalTornadoWarning = function() {
