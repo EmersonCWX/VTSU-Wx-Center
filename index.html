@@ -935,17 +935,30 @@
                 const displayText = isLocal ? 'SEEK SHELTER NOW' : `${warning.displayEvent || warning.type}`;
                 const isTornadoEmergency = warning.type === 'Tornado Emergency';
                 const isTornadoWarning = warning.type === 'Tornado Warning';
+                const isSevereThunderstorm = warning.type === 'Severe Thunderstorm Warning';
+                
+                // Determine text color based on warning type
+                let textColor, subtitleColor, citiesColor;
+                if (isSevereThunderstorm) {
+                    textColor = '#000000';      // Black for severe thunderstorm
+                    subtitleColor = '#333333';  // Dark gray for details
+                    citiesColor = '#333333';    // Dark gray for cities
+                } else {
+                    textColor = isLocal ? '#FF6B6B' : '#FFD700';  // Red/Yellow for tornado warnings
+                    subtitleColor = '#ccc';     // Light gray
+                    citiesColor = '#aaa';       // Medium gray
+                }
                 
                 div.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 0 20px;">
                         <div>
-                            <div style="font-size: 1.4rem; font-weight: bold; color: ${isLocal ? '#FF6B6B' : '#FFD700'};">
+                            <div style="font-size: 1.4rem; font-weight: bold; color: ${textColor};">
                                 ${displayText}
                             </div>
-                            <div style="font-size: 0.9rem; color: #ccc; margin-top: 5px;">
+                            <div style="font-size: 0.9rem; color: ${subtitleColor}; margin-top: 5px;">
                                 ${warning.type} | Issued: ${warning.issuedTime}
                             </div>
-                            <div style="font-size: 0.85rem; color: #aaa; margin-top: 3px;">
+                            <div style="font-size: 0.85rem; color: ${citiesColor}; margin-top: 3px;">
                                 ${warning.cities}
                             </div>
                         </div>
