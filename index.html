@@ -1143,10 +1143,10 @@
                                     <small style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Data Updated: ${fetchTime24} (${zuluTime})</small>
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
-                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data →</a>
+                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data</a>
                                 </div>
                                 <div style="margin-top: 12px; text-align: center;">
-                                    <a href="#" onclick="openCoCoRaHSWithData(event)" style="color: var(--vtsu-turquoise); text-decoration: underline;">Report to CoCoRaHS (Login Required) →</a>
+                                    <a href="cocorahs.html" style="color: var(--vtsu-turquoise); text-decoration: underline;">Report to CoCoRaHS (Login Required)</a>
                                 </div>
                             </div>
                         `;
@@ -1160,7 +1160,7 @@
                             <p style="color: var(--white); font-size: 0.95rem; margin-bottom: 15px;">${err.message}</p>
                             <a href="https://atmos.northernvermont.edu/weather-data/weather-station/" target="_blank"
                                style="display: inline-block; background: var(--vtsu-turquoise); color: white; padding: 10px 25px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-                                View Station Website →
+                                View Station Website
                             </a>
                         `;
                     }
@@ -1776,6 +1776,35 @@
             // Close on Escape key
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') closeAll();
+            });
+        })();
+
+        // Auto-fetch Synoptic weather data on page load/refresh
+        (function() {
+            // Function to fetch weather and update lyndon-weather element
+            function updateWeatherOnPageLoad() {
+                const weatherDiv = document.getElementById('lyndon-weather');
+                // Only fetch if the weather element exists
+                if (weatherDiv) {
+                    console.log('[Page Load] Fetching Synoptic weather data...');
+                    // Call the fetchWeather function which is already defined in the Mesonet Widget
+                    if (typeof window.fetchWeather === 'function') {
+                        window.fetchWeather();
+                    }
+                }
+            }
+
+            // Wait for DOM to be fully loaded before attempting to fetch
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateWeatherOnPageLoad);
+            } else {
+                // DOM is already loaded
+                updateWeatherOnPageLoad();
+            }
+
+            // Also update weather when user refreshes the page
+            window.addEventListener('beforeunload', function() {
+                console.log('[Page Refresh] Synoptic API ready for next page load');
             });
         })();
     </script>
