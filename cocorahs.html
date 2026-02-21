@@ -820,7 +820,8 @@
                 justify-self: center;
                 padding-left: 0;
                 gap: 8px;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
+                flex-direction: row;
             }
 
             .clock-item {
@@ -884,6 +885,13 @@
             .form-section-title {
                 font-size: 1.1rem;
                 margin-bottom: 15px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 0.8rem;
+                padding: 10px 12px;
             }
 
             .clock-item {
