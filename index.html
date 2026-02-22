@@ -869,7 +869,7 @@
             </div>
 
             <div class="loop-controls">
-                <div>RADAR NWS KCXX (Burlington, VT)</div>
+                <div>Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.</div>
             </div>
         </div>
     </div>
@@ -1280,7 +1280,7 @@
                     </div>
 
                     <div class="loop-controls">
-                        <div>RADAR NWS KCXX (Burlington, VT)</div>
+                        <div>Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.</div>
                     </div>
                 `;
                 
@@ -1298,6 +1298,49 @@
                 /* Fetch and display alerts when returning to main weather page */
                 // Alerts only shown on Lyndon Weather Station page
             };
+        })();
+
+        // Temporary Radar Scheduler - Switch to Northeast radar until Monday 0000z
+        (function() {
+            const radarImg = document.getElementById('radar-loop');
+            const loopControls = document.querySelector('.loop-controls div');
+            const northeastRadarUrl = 'https://radar.weather.gov/ridge/standard/NORTHEAST_loop.gif';
+            const kcxxRadarUrl = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
+            const northeastText = 'Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.';
+            const kcxxText = 'RADAR NWS KCXX (Burlington, VT)';
+            
+            // Switch to Northeast radar immediately
+            if (radarImg) {
+                radarImg.src = northeastRadarUrl;
+                console.log('%c[SCHEDULER] Switched to Northeast radar', 'color: #00ff00; font-weight: bold');
+            }
+            if (loopControls) {
+                loopControls.textContent = northeastText;
+            }
+            
+            // Calculate time until Monday 0000z
+            const now = new Date();
+            let mondayRevert = new Date();
+            
+            // Get next Monday
+            const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+            mondayRevert.setDate(now.getDate() + daysUntilMonday);
+            mondayRevert.setHours(0, 0, 0, 0); // Set to 0000z (midnight UTC)
+            
+            const timeUntilRevert = mondayRevert - now;
+            console.log('%c[SCHEDULER] Radar will revert to KCXX in ' + Math.round(timeUntilRevert / 1000 / 60 / 60) + ' hours', 'color: #ffaa00; font-weight: bold');
+            
+            // Schedule revert to KCXX at Monday 0000z
+            setTimeout(() => {
+                if (radarImg) {
+                    radarImg.src = kcxxRadarUrl;
+                    console.log('%c[SCHEDULER] Reverted radar to KCXX', 'color: #ff6b6b; font-weight: bold');
+                }
+                if (loopControls) {
+                    loopControls.textContent = kcxxText;
+                    console.log('%c[SCHEDULER] Reverted text to original KCXX text', 'color: #ff6b6b; font-weight: bold');
+                }
+            }, timeUntilRevert);
         })();
 
         // Warning System - Fetch and display severe weather warnings
