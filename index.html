@@ -869,7 +869,7 @@
             </div>
 
             <div class="loop-controls">
-                <div>Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.</div>
+                <div>RADAR NWS KCXX (Burlington, VT)</div>
             </div>
         </div>
     </div>
@@ -1280,7 +1280,7 @@
                     </div>
 
                     <div class="loop-controls">
-                        <div>Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.</div>
+                        <div>RADAR NWS KCXX (Burlington, VT)</div>
                     </div>
                 `;
                 
@@ -1303,19 +1303,13 @@
         // Temporary Radar Scheduler - Switch to Northeast radar until Monday 0000z
         (function() {
             const radarImg = document.getElementById('radar-loop');
-            const loopControls = document.querySelector('.loop-controls div');
             const northeastRadarUrl = 'https://radar.weather.gov/ridge/standard/NORTHEAST_loop.gif';
             const kcxxRadarUrl = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
-            const northeastText = 'Have a safe and happy break Lyndon ATM, radar will revert back to KCXX after the storm.';
-            const kcxxText = 'RADAR NWS KCXX (Burlington, VT)';
             
             // Switch to Northeast radar immediately
             if (radarImg) {
                 radarImg.src = northeastRadarUrl;
                 console.log('%c[SCHEDULER] Switched to Northeast radar', 'color: #00ff00; font-weight: bold');
-            }
-            if (loopControls) {
-                loopControls.textContent = northeastText;
             }
             
             // Calculate time until Monday 0000z
@@ -1335,10 +1329,6 @@
                 if (radarImg) {
                     radarImg.src = kcxxRadarUrl;
                     console.log('%c[SCHEDULER] Reverted radar to KCXX', 'color: #ff6b6b; font-weight: bold');
-                }
-                if (loopControls) {
-                    loopControls.textContent = kcxxText;
-                    console.log('%c[SCHEDULER] Reverted text to original KCXX text', 'color: #ff6b6b; font-weight: bold');
                 }
             }, timeUntilRevert);
         })();
