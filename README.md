@@ -17,6 +17,7 @@ Introduced mobile friendly version, fixed bug causing RTSW to exceed boundary an
 __*3/3/26*__ 
 Fixed broken datasets via CSV, should handle on a more timely basis, fixed a bug causing data to show math for Rh... Too much math in public. 
 Updated failed station to the new VTSU website. Began overhaul on GOES Magnometer page. 
+Fixed a memory caching issue causing data to get stuck and not update. 
 
 ## Upcoming Changes 
 ### Planned: AVC is now a standalone product and will recieve updates before standalone, Model viewer including grace cohens TRES system. 
