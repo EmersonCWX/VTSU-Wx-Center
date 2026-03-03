@@ -952,7 +952,8 @@
 
         // Mesonet Widget Functionality
         (function() {
-            const TOKEN = 'a5d9d976cd324d9e9b2c61fbc55b8b61';
+            const TOKEN = '2660710a828e4ca38edf307de122c675';
+            const API_KEY = 'KuYt0G7cmfORrlZgcEUjyomJdXrCpeD7Tmlo7puzBG';
             const STID = 'LSC01';
             const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
             let weatherUpdateInterval = null;
@@ -1158,7 +1159,7 @@
                             <h3 style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon Weather Station</h3>
                             <p style="color: var(--vtsu-red); margin-bottom: 15px;">Unable to load live data at this time.</p>
                             <p style="color: var(--white); font-size: 0.95rem; margin-bottom: 15px;">${err.message}</p>
-                            <a href="https://atmos.northernvermont.edu/weather-data/weather-station/" target="_blank"
+                            <a href="https://atmos.vermontstate.edu" target="_blank"
                                style="display: inline-block; background: var(--vtsu-turquoise); color: white; padding: 10px 25px; border-radius: 4px; text-decoration: none; font-weight: bold;">
                                 View Station Website
                             </a>
@@ -1280,7 +1281,7 @@
                     </div>
 
                     <div class="loop-controls">
-                        <div>RADAR NWS KCXX (Burlington, VT)</div>
+                        <div>Local Weather Radar</div>
                     </div>
                 `;
                 
@@ -1367,7 +1368,7 @@
                 } else {
                     // GitHub Pages - use CORS proxy
                     const encodedUrl = encodeURIComponent(nwsUrl);
-                    apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                    apiUrl = `https://corsproxy.io/?${encodedUrl}`;
                 }
 
                 fetch(apiUrl)
@@ -1715,7 +1716,7 @@
                 console.log('%c=== Checking Live NWS API ===', 'color: #00ff00; font-weight: bold');
                 const nwsUrl = 'https://api.weather.gov/alerts/active';
                 const encodedUrl = encodeURIComponent(nwsUrl);
-                const apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                const apiUrl = `https://corsproxy.io/?${encodedUrl}`;
                 
                 fetch(apiUrl)
                     .then(r => r.json())
