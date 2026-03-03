@@ -952,9 +952,10 @@
 
         // Mesonet Widget Functionality
         (function() {
-            const TOKEN = '2660710a828e4ca38edf307de122c675';
-            const API_KEY = 'KuYt0G7cmfORrlZgcEUjyomJdXrCpeD7Tmlo7puzBG';
+            const TOKEN = 'e13c3e7c953348229597c14474d611ff';
+            const API_KEY = 'KuqB2FeDomkXNyfEcrsLoxB9SHzLNTuKHZFqCeunN0';
             const STID = 'LSC01';
+            const FALLBACK_STID = 'LSC02';
             const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
             let weatherUpdateInterval = null;
             let dailyResetTimeout = null;
@@ -1059,75 +1060,111 @@
             window.fetchWeather = async function() {
                 const weatherDiv = document.getElementById('lyndon-weather');
                 try {
+                    // Fetch CSV data from atmos.vermontstate.edu with cache busting
+                    const csvUrl = 'https://atmos.vermontstate.edu/common/mesowest.php?t=' + Date.now();
                     const corsProxy = 'https://corsproxy.io/?';
-                    const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
                     
                     let response;
                     try {
-                        response = await fetch(corsProxy + encodeURIComponent(apiUrl), { mode: 'cors' });
+                        response = await fetch(corsProxy + encodeURIComponent(csvUrl), { 
+                            mode: 'cors',
+                            cache: 'no-store'
+                        });
                     } catch (corsError) {
                         console.log('CORS proxy failed, attempting direct fetch...');
-                        response = await fetch(apiUrl);
+                        response = await fetch(csvUrl, { cache: 'no-store' });
                     }
 
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    const data = await response.json();
-
-                    if (data.SUMMARY && data.SUMMARY.RESPONSE_CODE !== 1) {
-                        throw new Error(data.SUMMARY.RESPONSE_MESSAGE || 'API error: No station data available');
-                    }
-
-                    if (!data.STATION || data.STATION.length === 0) {
-                        throw new Error('No station data available');
-                    }
-
-                    const obs = data.STATION[0].OBSERVATIONS;
-                    const temp = obs.air_temp_value_1?.value || 'N/A';
-                    const wind = obs.wind_speed_value_1?.value || 'N/A';
-                    const humidity = obs.relative_humidity_value_1?.value || 'N/A';
-                    const windDir = obs.wind_direction_value_1?.value || 'N/A';
+                    const csvData = await response.text();
                     
-                    /* Pull pressure value and convert to hPa/millibars */
-                    let pressureRaw = obs.altimeter_value_1?.value 
-                        || obs.sea_level_pres_value_1?.value 
-                        || obs.pres_value_1?.value 
-                        || 'N/A';
+                    // Parse CSV - get the last line (most recent observation)
+                    const lines = csvData.trim().split('\n');
+                    if (lines.length < 2) {
+                        throw new Error('No data in CSV');
+                    }
+                    
+                    // Skip header (first line) and get the last data line
+                    const lastLine = lines[lines.length - 1];
+                    const values = lastLine.split(',');
+                    
+                    // CSV columns: Date,Time,Precip,2m temp,RH,Dewpoint,Pressure,Wind Dir,Wind Avg,Wind Gust,...
+                    const date = values[0];
+                    const time = values[1];
+                    const temp = parseFloat(values[3]) || 'N/A';
+                    const dewpoint = parseFloat(values[5]) || 'N/A';
+                    const windDir = parseFloat(values[7]) || 'N/A';
+                    const wind = parseFloat(values[8]) || 'N/A';
+                    const pressureRaw = parseFloat(values[6]) || 'N/A';
+                    
+                    // Calculate relative humidity from temperature and dewpoint
+                    let humidity = 'N/A';
+                    if (temp !== 'N/A' && dewpoint !== 'N/A') {
+                        // Magnus formula: RH = 100 * (e_s(Td) / e_s(T))
+                        const a = 17.625;
+                        const b = 243.04;
+                        const es_dewpoint = Math.exp((a * dewpoint) / (b + dewpoint));
+                        const es_temp = Math.exp((a * temp) / (b + temp));
+                        humidity = (100 * (es_dewpoint / es_temp)).toFixed(1);
+                    }
+                    
                     let pressure = 'N/A';
                     if (pressureRaw !== 'N/A') {
-                        /* If value is in inHg (28-31 range), convert to hPa by multiplying by 33.864 */
-                        /* If already in hPa/Pascals (>1000), divide by 100 if needed */
-                        let pressureHpa = pressureRaw < 100 ? (pressureRaw * 33.864) : (pressureRaw > 1000 ? pressureRaw / 100 : pressureRaw);
-                        pressure = pressureHpa.toFixed(1);
+                        // Pressure data appears to be in hPa already
+                        pressure = parseFloat(pressureRaw).toFixed(1);
                     }
                     
-                    /* Store latest weather data for CoCoRaHS integration */
-                    latestWeatherData.temperature = temp;
-                    latestWeatherData.windSpeed = wind;
-                    latestWeatherData.windDirection = windDir;
-                    latestWeatherData.windDirectionCompass = getCompassDirection(windDir);
+                    /* Store latest weather data for CoCoRaHS integration and mesonet-full page */
+                    latestWeatherData.temperature = temp !== 'N/A' ? temp.toFixed(2) : 'N/A';
+                    latestWeatherData.windSpeed = wind !== 'N/A' ? wind.toFixed(2) : 'N/A';
+                    latestWeatherData.windDirection = windDir !== 'N/A' ? windDir.toFixed(0) : 'N/A';
+                    latestWeatherData.windDirectionCompass = getCompassDirection(windDir !== 'N/A' ? windDir : 0);
                     latestWeatherData.pressure = pressure;
                     latestWeatherData.humidity = humidity;
+                    latestWeatherData.date = date;
+                    latestWeatherData.time = time;
+                    
+                    /* Store full CSV data for mesonet-full page */
+                    window.fullMesonetData = csvData;
 
-                    /* Extract observation timestamp from API - use the time data was actually collected */
-                    const obsTime = obs.air_temp_value_1?.date_time || obs.wind_speed_value_1?.date_time || obs.relative_humidity_value_1?.date_time;
+                    /* Create timestamp from CSV date/time (CSV is in local Vermont time) */
+                    const obsTimeKey = `${date}T${time}`;
                     
                     /* Only update display if we have new data from the station */
                     let fetchTime24 = 'N/A';
                     let zuluTime = 'N/A';
                     
-                    if (obsTime && obsTime !== lastObservationTime) {
-                        lastObservationTime = obsTime;
-                        const obsDate = new Date(obsTime);
-                        fetchTime24 = obsDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                        zuluTime = obsDate.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                    if (obsTimeKey && obsTimeKey !== lastObservationTime) {
+                        lastObservationTime = obsTimeKey;
+                        // CSV time is local Vermont time (EST), display as-is
+                        fetchTime24 = time;
+                        
+                        // Convert local time to UTC (EST = UTC-5, so add 5 hours)
+                        const [hours, minutes, seconds] = time.split(':').map(Number);
+                        let utcHours = hours + 5;
+                        let utcDay = date;
+                        if (utcHours >= 24) {
+                            utcHours -= 24;
+                            const nextDate = new Date(`${date}T00:00:00`);
+                            nextDate.setDate(nextDate.getDate() + 1);
+                            utcDay = nextDate.toISOString().split('T')[0];
+                        }
+                        zuluTime = `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}Z`;
                     } else if (lastObservationTime) {
                         /* Use previously saved timestamp if no new data */
-                        const prevDate = new Date(lastObservationTime);
-                        fetchTime24 = prevDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                        zuluTime = prevDate.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                        const [prevTime, prevDay] = lastObservationTime.split('T');
+                        fetchTime24 = prevTime;
+                        
+                        // Calculate Zulu time from saved local time
+                        const [hours, minutes, seconds] = prevTime.split(':').map(Number);
+                        let utcHours = hours + 5;
+                        if (utcHours >= 24) {
+                            utcHours -= 24;
+                        }
+                        zuluTime = `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}Z`;
                     }
 
                     if (weatherDiv) {
@@ -1135,10 +1172,10 @@
                             <h3 class="mesonet-header" style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon</h3>
                             <div class="mesonet-content" style="font-size: 1.1rem; color: var(--white); line-height: 1.8; text-align: left; max-width: 500px; margin: 0 auto;">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp}°F</div>
-                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind} mph</div>
-                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${getCompassDirection(windDir)} ${windDir === 'N/A' ? '' : '(' + windDir + '°)'}</div>
-                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity}%</div>
+                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp !== 'N/A' ? temp.toFixed(1) : 'N/A'}°F</div>
+                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind !== 'N/A' ? wind.toFixed(1) : 'N/A'} mph</div>
+                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${windDir !== 'N/A' ? getCompassDirection(windDir) : 'N/A'} ${windDir !== 'N/A' ? '(' + windDir.toFixed(0) + '°)' : ''}</div>
+                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity !== 'N/A' ? humidity : 'N/A'}%</div>
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
                                     <small style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Data Updated: ${fetchTime24} (${zuluTime})</small>
