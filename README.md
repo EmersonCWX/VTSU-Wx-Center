@@ -14,6 +14,10 @@ Added VTSU Mesonet and 24 hour data logging, Made mobile friendly, Reduced code 
 __*2/20/26*__
 Introduced mobile friendly version, fixed bug causing RTSW to exceed boundary and continually expand, Added CONUS severe weather alerts, added local lyndon advisories and alerts to VTSU mesonet page, UI Navigation received a bounding box overhaul. Fixed bug causing station pressure to not show (hPa) Fixed bug causing local alerts to not show up on vertical devices. Prepped for public release.
 
+__*3/3/26*__ 
+Fixed broken datasets via CSV, should handle on a more timely basis, fixed a bug causing data to show math for Rh... Too much math in public. 
+Updated failed station to the new VTSU website. Began overhaul on GOES Magnometer page. 
+
 ## Upcoming Changes 
 ### Planned: AVC is now a standalone product and will recieve updates before standalone, Model viewer including grace cohens TRES system. 
 
