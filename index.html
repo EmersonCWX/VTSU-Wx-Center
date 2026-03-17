@@ -5,14 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vermont State University Lyndon | Weather Center</title>
     <style>
+        /* ============================================================
+           CSS VARIABLES - Design System & Timing
+           ============================================================ */
         :root {
+            /* Brand Colors */
             --vtsu-turquoise: #00A5B3;
             --vtsu-red: #EC3754;
             --dark-gray: #1a1a1a;
             --white: #ffffff;
             --clock-bg: #2a2a2a;
+
+            /* Animation Timing */
+            --alert-fade-in-duration: 0.6s;
+            --alert-scroll-duration-desktop: 20s;
+            --alert-scroll-duration-tablet: 30s;
+            --alert-scroll-duration-mobile: 35s;
+            --transition-smooth: 0.3s ease;
+
+            /* Navigation Layout */
+            --nav-height-desktop: 4rem;
+            --nav-height-mobile: 11rem;
+            --alert-bar-top: var(--nav-height-desktop);
         }
 
+        /* ============================================================
+           GLOBAL STYLES
+           ============================================================ */
         body, html {
             margin: 0;
             padding: 0;
@@ -342,32 +361,256 @@
                 display: inline-block;
             }
 
-            .splash-container {
-                padding: 1rem;
-                width: 98%;
-                max-width: 980px;
+            .main-wrapper {
+                padding: 10px;
             }
 
-            .logo-area h1 { font-size: 1.6rem; }
-            .logo-area h2 { font-size: 1rem; }
+            .splash-container {
+                padding: 1.2rem;
+                width: 98%;
+                max-width: 100%;
+            }
+
+            .logo-area h1 { 
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+
+            .logo-area h2 { 
+                margin: 5px 0 15px 0;
+                font-size: 0.9rem;
+                padding-bottom: 4px;
+            }
 
             /* Make radar image responsive and avoid overflow on tall screens */
             #radar-loop {
-                width: 94vw;
+                width: 90vw;
                 height: auto;
-                max-height: 70vh;
+                max-height: 50vh;
                 object-fit: contain;
             }
 
-            .loop-frame { padding: 8px 0; }
+            .loop-frame { 
+                padding: 8px 0;
+                margin: 0 auto 0.8rem auto;
+            }
 
-            .enter-btn { padding: 12px 24px; }
+            .loop-controls {
+                font-size: 0.75rem;
+                padding: 0;
+            }
 
-            footer { font-size: 0.82rem; padding: 0.8rem 0; }
+            .enter-btn { 
+                padding: 10px 20px;
+                font-size: 0.95rem;
+                margin-top: 10px;
+            }
+
+            footer { 
+                font-size: 0.75rem;
+                padding: 0.6rem 0;
+            }
 
             /* Make dropdowns easier to interact with on touch */
-            .dropdown-btn { padding: 10px 12px; }
-            .dropdown-content { min-width: 220px; left: auto; right: 0; }
+            .dropdown-btn { 
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+            .dropdown-content { 
+                min-width: 200px;
+                left: auto;
+                right: 0;
+            }
+            
+            /* Mobile alert bar - responsive positioning and animation timing */
+            .mesonet-alert-bar {
+                padding: 10px 0;
+                top: 11rem;
+            }
+
+            .mesonet-alert-prefix {
+                padding: 0 10px;
+                font-size: 0.8rem;
+                min-width: 130px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 130px;
+                animation: scroll-text var(--alert-scroll-duration-tablet) linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.8rem;
+            }
+
+            /* Mesonet widget mobile responsiveness */
+            .mesonet-header {
+                font-size: 1.3rem;
+                margin-bottom: 12px;
+            }
+
+            .mesonet-content {
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.95rem;
+            }
+
+            #lyndon-weather {
+                max-width: 90% !important;
+                padding: 18px !important;
+                margin: 18px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Ultra-narrow/small phone displays (max-width: 480px) */
+        @media (max-width: 480px) {
+            .top-nav {
+                padding: 0.5rem 0.4rem;
+                gap: 4px;
+            }
+
+            .clock-container {
+                gap: 6px;
+                padding: 0 4px;
+            }
+
+            .clock-item {
+                padding: 4px 8px;
+            }
+
+            .clock-label {
+                font-size: 0.5rem;
+            }
+
+            .time-display {
+                font-size: 0.8rem;
+            }
+
+            .nav-links a {
+                margin: 4px 6px;
+                font-size: 0.85rem;
+                padding: 4px 6px;
+            }
+
+            .dropdown-btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+
+            .dropdown-content {
+                min-width: 160px;
+                font-size: 0.85rem;
+            }
+
+            .main-wrapper {
+                padding: 8px;
+            }
+
+            .splash-container {
+                padding: 0.8rem;
+                width: 99%;
+            }
+
+            .logo-area h1 {
+                font-size: 1.2rem;
+                margin-bottom: 3px;
+            }
+
+            .logo-area h2 {
+                margin: 3px 0 10px 0;
+                font-size: 0.8rem;
+                padding-bottom: 3px;
+            }
+
+            #radar-loop {
+                width: 95vw;
+                max-height: 45vh;
+            }
+
+            .loop-frame {
+                padding: 6px 0;
+                margin: 0 auto 0.6rem auto;
+            }
+
+            .loop-controls {
+                font-size: 0.7rem;
+            }
+
+            .enter-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                margin-top: 8px;
+            }
+
+            footer {
+                font-size: 0.7rem;
+                padding: 0.5rem 0;
+            }
+
+            /* Mesonet mobile optimizations */
+            .mesonet-alert-prefix {
+                padding: 0 8px;
+                font-size: 0.75rem;
+                min-width: 110px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 110px;
+                animation: scroll-text 35s linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.75rem;
+            }
+
+            /* Ultra-small device alert bar positioning and animation */
+            .mesonet-alert-bar {
+                top: 10rem;
+            }
+
+            .mesonet-alert-content {
+                animation: scroll-text var(--alert-scroll-duration-mobile) linear infinite;
+            }
+
+            .mesonet-header {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+
+            .mesonet-content {
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.85rem;
+            }
+
+            #lyndon-weather {
+                max-width: 95% !important;
+                padding: 15px !important;
+                margin: 12px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Prevent overflow issues */
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow-x: hidden;
         }
 
         /* Rising stack animations */
@@ -439,6 +682,85 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes scroll-text {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .mesonet-alert-bar {
+            width: 100%;
+            padding: 12px 0;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: var(--alert-bar-top);
+            left: 0;
+            z-index: 9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            animation: fadeIn var(--alert-fade-in-duration) ease-in;
+        }
+
+        .mesonet-alert-bar.winter-advisory {
+            background-color: #7b68ee;
+        }
+
+        .mesonet-alert-bar.winter-warning {
+            background-color: #ff69b4;
+        }
+
+        .mesonet-alert-bar.winter-watch {
+            background-color: #8b9dc3;
+        }
+
+        .mesonet-alert-prefix {
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            padding: 0 15px;
+            position: relative;
+            z-index: 10;
+            background: inherit;
+            font-size: 0.95rem;
+        }
+
+        .mesonet-alert-content {
+            display: flex;
+            align-items: center;
+            animation: scroll-text var(--alert-scroll-duration-desktop) linear infinite;
+            white-space: nowrap;
+            margin-left: 180px;
+        }
+
+        .mesonet-alert-text {
+            color: white;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
             }
         }
 
@@ -619,19 +941,35 @@
                 });
             }
 
-            // Always default to radar view on page load
+            // Restore saved view on page load
             window.addEventListener('DOMContentLoaded', function() {
-                localStorage.removeItem('currentView');
+                const savedView = localStorage.getItem('currentView');
+                if (savedView === 'mesonet') {
+                    window.showMesonetWidget();
+                }
             });
         })();
 
         // Mesonet Widget Functionality
         (function() {
-            const TOKEN = 'a5d9d976cd324d9e9b2c61fbc55b8b61';
+            const TOKEN = '30b5ef15632c48748c54d1322cd150ac';
+            const API_KEY = 'KuqB2FeDomkXNyfEcrsLoxB9SHzLNTuKHZFqCeunN0';
             const STID = 'LSC01';
+            const FALLBACK_STID = 'LSC02';
             const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
             let weatherUpdateInterval = null;
             let dailyResetTimeout = null;
+            let lastObservationTime = null; // Track the last observation timestamp
+            
+            /* Store latest weather data for CoCoRaHS integration */
+            let latestWeatherData = {
+                temperature: 'N/A',
+                windSpeed: 'N/A',
+                windDirection: 'N/A',
+                windDirectionCompass: 'N/A',
+                pressure: 'N/A',
+                humidity: 'N/A'
+            };
 
             function getTimeUntilNextReset() {
                 const now = new Date();
@@ -654,12 +992,40 @@
                 }, timeUntilReset);
             }
 
+            /**
+             * Converts wind direction from degrees to compass letters
+             * @param {number} degrees - Wind direction in degrees (0-360)
+             * @returns {string} Compass direction (e.g., "N", "NE", "E", etc.)
+             */
+            function getCompassDirection(degrees) {
+                if (degrees === null || degrees === undefined || degrees === 'N/A') return 'N/A';
+                
+                const compassPoints = [
+                    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'
+                ];
+                
+                const num = parseInt(degrees);
+                const index = Math.round(num / 22.5) % 16;
+                return compassPoints[index];
+            }
+
+            /**
+             * Initializes and displays the Lyndon Weather Station mesonet widget.
+             * Loads real-time weather data from Synoptic Data API and active
+             * winter weather alerts from NWS API. Persists view state in localStorage.
+             * 
+             * Data sources:
+             * - Synoptic Data API: LSC01 (Lyndon State College station)
+             * - NWS Weather Alerts API: Real-time weather alerts
+             */
             window.showMesonetWidget = function() {
                 localStorage.setItem('currentView', 'mesonet');
                 const splashContainer = document.querySelector('.splash-container');
                 if (!splashContainer) return;
 
                 splashContainer.innerHTML = `
+                    <div id="mesonet-alert-container"></div>
                     <div class="logo-area">
                         <h1>Vermont State University</h1>
                         <h2>Lyndon Weather Station</h2>
@@ -673,64 +1039,161 @@
                 `;
 
                 fetchWeather();
+                fetchMesonetWinterAlerts();
                 if (weatherUpdateInterval) clearInterval(weatherUpdateInterval);
                 weatherUpdateInterval = setInterval(fetchWeather, 300000);
                 scheduleDailyReset();
             };
 
+            /**
+             * Fetches real-time weather observations from Lyndon weather station.
+             * Data from Synoptic Data API (Station ID: LSC01)
+             * 
+             * Parameters queried:
+             * - air_temp_value_1: Temperature (Fahrenheit)
+             * - wind_speed_value_1: Wind speed (mph)
+             * - relative_humidity_value_1: Relative humidity (%)
+             * - wind_direction_value_1: Wind direction (degrees)
+             * 
+             * Uses CORS proxy as fallback for cross-origin requests
+             */
             window.fetchWeather = async function() {
                 const weatherDiv = document.getElementById('lyndon-weather');
                 try {
-                    const corsProxy = 'https://corsproxy.io/?';
-                    const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
+                    // Fetch CSV data from atmos.vermontstate.edu with cache busting
+                    const csvUrl = 'https://atmos.vermontstate.edu/common/mesowest.php?t=' + Date.now();
+                    const proxies = [
+                        url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
+                        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                        url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    ];
+
+                    // Try each proxy in turn, validate it actually returned CSV
+                    let csvData = null;
+                    let lastError;
+                    const allSources = [
+                        ...proxies.map(buildUrl => buildUrl(csvUrl)),
+                        csvUrl  // direct fetch as last resort
+                    ];
+                    for (const url of allSources) {
+                        try {
+                            const res = await fetch(url, { cache: 'no-store' });
+                            if (!res.ok) { lastError = new Error(`Status ${res.status} from ${url}`); continue; }
+                            const text = await res.text();
+                            // Validate it looks like CSV (first line should not be HTML)
+                            if (text.trim().startsWith('<') || text.trim().length === 0) {
+                                lastError = new Error(`Non-CSV response from ${url}`);
+                                console.warn(lastError.message);
+                                continue;
+                            }
+                            csvData = text;
+                            console.log(`CSV fetched successfully from: ${url}`);
+                            break;
+                        } catch (err) {
+                            lastError = err;
+                        }
+                    }
+                    if (!csvData) {
+                        throw new Error(`All sources failed. Last error: ${lastError?.message}`);
+                    }
                     
-                    let response;
-                    try {
-                        response = await fetch(corsProxy + encodeURIComponent(apiUrl), { mode: 'cors' });
-                    } catch (corsError) {
-                        console.log('CORS proxy failed, attempting direct fetch...');
-                        response = await fetch(apiUrl);
+                    // Parse CSV - get the last line (most recent observation)
+                    const lines = csvData.trim().split('\n');
+                    if (lines.length < 2) {
+                        throw new Error('No data in CSV');
                     }
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    // Skip header (first line) and get the last data line
+                    const lastLine = lines[lines.length - 1];
+                    const values = lastLine.split(',');
+                    
+                    // CSV columns: Date,Time,Precip,2m temp,RH,Dewpoint,Pressure,Wind Dir,Wind Avg,Wind Gust,...
+                    const date = values[0];
+                    const time = values[1];
+                    const temp = parseFloat(values[3]);
+                    const dewpoint = parseFloat(values[5]);
+                    const windDir = parseFloat(values[7]);
+                    const wind = parseFloat(values[8]);
+                    const pressureRaw = parseFloat(values[6]);
+                    
+                    // Calculate relative humidity from temperature and dewpoint
+                    let humidity = 'N/A';
+                    if (!isNaN(temp) && !isNaN(dewpoint)) {
+                        const a = 17.625;
+                        const b = 243.04;
+                        const es_dewpoint = Math.exp((a * dewpoint) / (b + dewpoint));
+                        const es_temp = Math.exp((a * temp) / (b + temp));
+                        humidity = (100 * (es_dewpoint / es_temp)).toFixed(1);
                     }
-
-                    const data = await response.json();
-
-                    if (data.SUMMARY && data.SUMMARY.RESPONSE_CODE !== 1) {
-                        throw new Error(data.SUMMARY.RESPONSE_MESSAGE || 'API error: No station data available');
+                    
+                    let pressure = 'N/A';
+                    if (!isNaN(pressureRaw)) {
+                        pressure = pressureRaw.toFixed(1);
                     }
+                    
+                    /* Store latest weather data for CoCoRaHS integration and mesonet-full page */
+                    latestWeatherData.temperature = !isNaN(temp) ? temp.toFixed(2) : 'N/A';
+                    latestWeatherData.windSpeed = !isNaN(wind) ? wind.toFixed(2) : 'N/A';
+                    latestWeatherData.windDirection = !isNaN(windDir) ? windDir.toFixed(0) : 'N/A';
+                    latestWeatherData.windDirectionCompass = getCompassDirection(!isNaN(windDir) ? windDir : 0);
+                    latestWeatherData.pressure = pressure;
+                    latestWeatherData.humidity = humidity;
+                    latestWeatherData.date = date;
+                    latestWeatherData.time = time;
+                    
+                    /* Store full CSV data for mesonet-full page */
+                    window.fullMesonetData = csvData;
 
-                    if (!data.STATION || data.STATION.length === 0) {
-                        throw new Error('No station data available');
+                    /* Create timestamp from CSV date/time (CSV is in local Vermont time) */
+                    const obsTimeKey = `${date}T${time}`;
+                    
+                    /* Only update display if we have new data from the station */
+                    let fetchTime24 = 'N/A';
+                    let zuluTime = 'N/A';
+                    
+                    if (obsTimeKey && obsTimeKey !== lastObservationTime) {
+                        lastObservationTime = obsTimeKey;
+                        fetchTime24 = time;
+                        
+                        // Convert local time to UTC (EST = UTC-5, so add 5 hours)
+                        const [hours, minutes, seconds] = time.split(':').map(Number);
+                        let utcHours = hours + 5;
+                        if (utcHours >= 24) {
+                            utcHours -= 24;
+                        }
+                        zuluTime = `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}Z`;
+                    } else if (lastObservationTime) {
+                        /* Use previously saved timestamp if no new data */
+                        const [prevDate, prevTime] = lastObservationTime.split('T');
+                        fetchTime24 = prevTime;
+                        
+                        const [hours, minutes, seconds] = prevTime.split(':').map(Number);
+                        let utcHours = hours + 5;
+                        if (utcHours >= 24) {
+                            utcHours -= 24;
+                        }
+                        zuluTime = `${String(utcHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}Z`;
                     }
-
-                    const obs = data.STATION[0].OBSERVATIONS;
-                    const temp = obs.air_temp_value_1?.value || 'N/A';
-                    const wind = obs.wind_speed_value_1?.value || 'N/A';
-                    const humidity = obs.relative_humidity_value_1?.value || 'N/A';
-                    const windDir = obs.wind_direction_value_1?.value || 'N/A';
-
-                    const now = new Date();
-                    const fetchTime24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const zuluTime = now.toISOString().split('T')[1].substring(0, 8) + 'Z';
 
                     if (weatherDiv) {
                         weatherDiv.innerHTML = `
                             <h3 class="mesonet-header" style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon</h3>
                             <div class="mesonet-content" style="font-size: 1.1rem; color: var(--white); line-height: 1.8; text-align: left; max-width: 500px; margin: 0 auto;">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp}°F</div>
-                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind} mph</div>
-                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${windDir}°</div>
-                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity}%</div>
+                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${!isNaN(temp) ? temp.toFixed(1) : 'N/A'}°F</div>
+                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${!isNaN(wind) ? wind.toFixed(1) : 'N/A'} mph</div>
+                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${!isNaN(windDir) ? getCompassDirection(windDir) : 'N/A'} ${!isNaN(windDir) ? '(' + windDir.toFixed(0) + '°)' : ''}</div>
+                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity !== 'N/A' ? humidity : 'N/A'}%</div>
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
                                     <small style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Data Updated: ${fetchTime24} (${zuluTime})</small>
                                 </div>
                                 <div style="margin-top: 15px; text-align: center;">
-                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data →</a>
+                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data</a>
+                                </div>
+                                <div style="margin-top: 12px; text-align: center;">
+                                    <a href="cocorahs.html" style="color: var(--vtsu-turquoise); text-decoration: underline;">Report to CoCoRaHS (Login Required)</a>
                                 </div>
                             </div>
                         `;
@@ -742,13 +1205,101 @@
                             <h3 style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon Weather Station</h3>
                             <p style="color: var(--vtsu-red); margin-bottom: 15px;">Unable to load live data at this time.</p>
                             <p style="color: var(--white); font-size: 0.95rem; margin-bottom: 15px;">${err.message}</p>
-                            <a href="https://atmos.northernvermont.edu/weather-data/weather-station/" target="_blank"
+                            <a href="https://atmos.vermontstate.edu" target="_blank"
                                style="display: inline-block; background: var(--vtsu-turquoise); color: white; padding: 10px 25px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-                                View Station Website →
+                                View Station Website
                             </a>
                         `;
                     }
                 }
+            };
+            /**
+             * Fetches active winter weather alerts from NWS API and displays
+             * them on the Lyndon Weather Station page. Filters alerts by:
+             * - Alert type (Winter Advisory, Warning, Watch, Tornado Watch)
+             * - Geographic location (Caledonia County area)
+             * 
+             * Color coding:
+             * - #7b68ee (Blue Violet): Winter Weather Advisory
+             * - #ff69b4 (Hot Pink): Winter Storm Warning (highest severity)
+             * - #8b9dc3 (Light Blue Gray): Winter Storm Watch
+             */
+            window.fetchMesonetWinterAlerts = async function() {
+                try {
+                    const nwsUrl = 'https://api.weather.gov/alerts/active';
+                    const response = await fetch(nwsUrl);
+                    const data = await response.json();
+                    
+                    /* Priority-ordered alert types to monitor */
+                    const winterAlertTypes = [
+                        'Winter Weather Advisory',
+                        'Winter Storm Warning',
+                        'Winter Storm Watch',
+                        'Tornado Watch'
+                    ];
+                    
+                    /* Filter alerts affecting Lyndon/Caledonia County area */
+                    const lyndonAlerts = data.features.filter(feature => {
+                        const props = feature.properties;
+                        const isWinterAlert = winterAlertTypes.includes(props.event);
+                        const affectsLyndon = props.areaDesc && (
+                            props.areaDesc.includes('Caledonia') || 
+                            props.areaDesc.includes('Lyndonville') || 
+                            props.areaDesc.includes('St Johnsbury')
+                        );
+                        return isWinterAlert && affectsLyndon;
+                    });
+                    
+                    if (lyndonAlerts.length > 0) {
+                        const alert = lyndonAlerts[0];
+                        const alertType = alert.properties.event;
+                        const alertText = alert.properties.headline || `${alertType} issued`;
+                        
+                        /* Map alert severity to color-coded UI class */
+                        let barClass = 'winter-advisory';
+                        if (alertType === 'Winter Storm Warning') {
+                            barClass = 'winter-warning';
+                        } else if (alertType === 'Winter Storm Watch') {
+                            barClass = 'winter-watch';
+                        }
+                        
+                        const alertContainer = document.getElementById('mesonet-alert-container');
+                        if (alertContainer) {
+                            alertContainer.innerHTML = `
+                                <div class="mesonet-alert-bar ${barClass}">
+                                    <span class="mesonet-alert-prefix">Local Weather Alerts:</span>
+                                    <div class="mesonet-alert-content">
+                                        <span class="mesonet-alert-text">${alertText}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Could not fetch winter alerts for mesonet:', err);
+                }
+            };
+
+            /**
+             * Copies latest weather data to clipboard and opens CoCoRaHS reporting page
+             * User can then paste the data into the Observation Notes field
+             */
+            window.openCoCoRaHSWithData = function(event) {
+                event.preventDefault();
+                
+                /* Generate observation notes with latest weather data */
+                const obsNotes = `Conditions at Observation time:\nTemperature: ${latestWeatherData.temperature}°F\nWind Speed: ${latestWeatherData.windSpeed} m/s\nWind Direction: ${latestWeatherData.windDirectionCompass} (${latestWeatherData.windDirection}°)\nPressure: ${latestWeatherData.pressure} hPa\nHumidity: ${latestWeatherData.humidity}%`;
+                
+                /* Copy weather data to clipboard */
+                navigator.clipboard.writeText(obsNotes).then(() => {
+                    console.log('Station data copied to clipboard');
+                    /* Open CoCoRaHS reporting page */
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                }).catch(err => {
+                    console.error('Failed to copy to clipboard:', err);
+                    alert('Could not copy to clipboard. Here is your station data:\n\n' + obsNotes);
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                });
             };
 
             window.resetToRadar = function() {
@@ -776,7 +1327,7 @@
                     </div>
 
                     <div class="loop-controls">
-                        <div>RADAR NWS KCXX (Burlington, VT)</div>
+                        <div>Local Weather Radar</div>
                     </div>
                 `;
                 
@@ -790,7 +1341,43 @@
                         }
                     }, 300000);
                 }, 100);
+
+                /* Fetch and display alerts when returning to main weather page */
+                // Alerts only shown on Lyndon Weather Station page
             };
+        })();
+
+        // Temporary Radar Scheduler - Switch to Northeast radar until Monday 0000z
+        (function() {
+            const radarImg = document.getElementById('radar-loop');
+            const northeastRadarUrl = 'https://radar.weather.gov/ridge/standard/NORTHEAST_loop.gif';
+            const kcxxRadarUrl = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
+            
+            // Switch to Northeast radar immediately
+            if (radarImg) {
+                radarImg.src = northeastRadarUrl;
+                console.log('%c[SCHEDULER] Switched to Northeast radar', 'color: #00ff00; font-weight: bold');
+            }
+            
+            // Calculate time until Monday 0000z
+            const now = new Date();
+            let mondayRevert = new Date();
+            
+            // Get next Monday
+            const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+            mondayRevert.setDate(now.getDate() + daysUntilMonday);
+            mondayRevert.setHours(0, 0, 0, 0); // Set to 0000z (midnight UTC)
+            
+            const timeUntilRevert = mondayRevert - now;
+            console.log('%c[SCHEDULER] Radar will revert to KCXX in ' + Math.round(timeUntilRevert / 1000 / 60 / 60) + ' hours', 'color: #ffaa00; font-weight: bold');
+            
+            // Schedule revert to KCXX at Monday 0000z
+            setTimeout(() => {
+                if (radarImg) {
+                    radarImg.src = kcxxRadarUrl;
+                    console.log('%c[SCHEDULER] Reverted radar to KCXX', 'color: #ff6b6b; font-weight: bold');
+                }
+            }, timeUntilRevert);
         })();
 
         // Warning System - Fetch and display severe weather warnings
@@ -800,6 +1387,7 @@
             let warningTimeout = null;
             let activeWarningId = null;
             let tornadoEmergencyTimeout = null;
+            let previousWarningState = {}; // Track radar vs observed state for upgrade detection
             const originalRadarSrc = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
             
             // NWS Office to nearest radar mapping
@@ -826,7 +1414,7 @@
                 } else {
                     // GitHub Pages - use CORS proxy
                     const encodedUrl = encodeURIComponent(nwsUrl);
-                    apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                    apiUrl = `https://corsproxy.io/?${encodedUrl}`;
                 }
 
                 fetch(apiUrl)
@@ -893,15 +1481,24 @@
                             ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
                         ) || tornadoWarnings[0];
                         // Extract "Radar Indicated" or "Observed" from headline if present
-                        const radarOrObserved = localWarning.headline.includes('Radar Indicated') ? '(Radar Indicated)' : '(Observed)';
+                        const isRadarIndicated = localWarning.headline.includes('Radar Indicated');
+                        const isObserved = !isRadarIndicated;
+                        
+                        // Check if this is an upgrade from Radar Indicated to Observed (for internal tracking)
+                        const wasUpgraded = isObserved && previousWarningState[localWarning.id] === 'Radar Indicated';
+                        
+                        // Update previous state for next comparison
+                        previousWarningState[localWarning.id] = isRadarIndicated ? 'Radar Indicated' : 'Observed';
+                        
                         displayWarning({
                             type: 'Tornado Warning',
-                            displayEvent: `Tornado Warning ${radarOrObserved}`,
+                            displayEvent: `Tornado Warning (Observed)`,
                             issuingOffice: localWarning.issuingOffice,
                             issuedTime: localWarning.issuedTime,
                             cities: localWarning.cities,
                             local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
-                            id: localWarning.id
+                            id: localWarning.id,
+                            upgraded: wasUpgraded
                         });
                     } else if (severeThunderstormWarnings.length > 0) {
                         // Show local severe thunderstorm warning if available, or first one
@@ -957,8 +1554,8 @@
                 }
                 
                 div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 0 20px;">
-                        <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; padding: 0;">
+                        <div style="padding: 0 20px;">
                             <div style="font-size: 1.4rem; font-weight: bold; color: ${textColor};">
                                 ${displayText}
                             </div>
@@ -969,8 +1566,8 @@
                                 ${warning.cities}
                             </div>
                         </div>
-                        <button onclick="closeWarning()" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
-                            Dismiss
+                        <button onclick="closeWarning()" style="background: transparent; color: white; border: none; padding: 0 20px; cursor: pointer; font-size: 1.5rem; font-weight: bold; margin-right: 10px; opacity: 0.8; flex-shrink: 0; display: flex; align-items: center; height: 100%;">
+                            ×
                         </button>
                     </div>
                 `;
@@ -985,7 +1582,7 @@
                 }
                 
                 div.style.color = 'white';
-                div.style.padding = '15px 20px';
+                div.style.padding = '15px 0';
                 div.style.display = 'flex';
                 div.style.alignItems = 'center';
                 div.style.justifyContent = 'space-between';
@@ -1015,8 +1612,11 @@
             window.closeWarning = function() {
                 const div = document.getElementById('warning-notification');
                 if (div) {
-                    div.style.display = 'none';
-                    div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                    div.style.animation = 'fadeOut 0.5s ease-out forwards';
+                    setTimeout(() => {
+                        div.style.display = 'none';
+                        div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                    }, 500);
                 }
                 activeWarningId = null;
             };
@@ -1132,6 +1732,18 @@
                 displayWarning(testWarning);
             };
 
+            window.testSevereThunderstormContinuation = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning (Continuation)',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Chittenden, Addison, Rutland Counties, VT',
+                    id: `test-svr-tstm-continuation-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
             window.testRestoreRadar = function() {
                 restoreOriginalRadar();
                 console.log('Radar restored to original KCXX');
@@ -1150,7 +1762,7 @@
                 console.log('%c=== Checking Live NWS API ===', 'color: #00ff00; font-weight: bold');
                 const nwsUrl = 'https://api.weather.gov/alerts/active';
                 const encodedUrl = encodeURIComponent(nwsUrl);
-                const apiUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+                const apiUrl = `https://corsproxy.io/?${encodedUrl}`;
                 
                 fetch(apiUrl)
                     .then(r => r.json())
@@ -1182,7 +1794,9 @@
                 console.log('%ctestSevereThunderstorm()', 'color: #ffff00; font-weight: bold');
                 console.log('  → Display a Severe Thunderstorm Warning');
                 console.log('%ctestContinuation()', 'color: #00ff00; font-weight: bold');
-                console.log('  → Display a continuation warning');
+                console.log('  → Display a Tornado Warning continuation');
+                console.log('%ctestSevereThunderstormContinuation()', 'color: #ffff00; font-weight: bold');
+                console.log('  → Display a Severe Thunderstorm Warning continuation');
                 console.log('');
                 console.log('%c=== WARNING MANAGEMENT ===', 'color: #ffd500; font-weight: bold');
                 console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
@@ -1205,7 +1819,7 @@
 
             // Auto-show test commands on page load
             console.log('%cWARNING SYSTEM LOADED v2.1 (displayWarning exposed) - Type: showWarningTest()', 'color: #00A5B3; font-weight: bold; font-size: 12px');
-            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
+            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testSevereThunderstormContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
         })();
         (function() {
             const dropdowns = Array.from(document.querySelectorAll('.left-nav .dropdown'));
@@ -1242,6 +1856,35 @@
             // Close on Escape key
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') closeAll();
+            });
+        })();
+
+        // Auto-fetch Synoptic weather data on page load/refresh
+        (function() {
+            // Function to fetch weather and update lyndon-weather element
+            function updateWeatherOnPageLoad() {
+                const weatherDiv = document.getElementById('lyndon-weather');
+                // Only fetch if the weather element exists
+                if (weatherDiv) {
+                    console.log('[Page Load] Fetching Synoptic weather data...');
+                    // Call the fetchWeather function which is already defined in the Mesonet Widget
+                    if (typeof window.fetchWeather === 'function') {
+                        window.fetchWeather();
+                    }
+                }
+            }
+
+            // Wait for DOM to be fully loaded before attempting to fetch
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateWeatherOnPageLoad);
+            } else {
+                // DOM is already loaded
+                updateWeatherOnPageLoad();
+            }
+
+            // Also update weather when user refreshes the page
+            window.addEventListener('beforeunload', function() {
+                console.log('[Page Refresh] Synoptic API ready for next page load');
             });
         })();
     </script>

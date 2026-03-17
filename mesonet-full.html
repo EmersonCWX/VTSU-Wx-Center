@@ -7,12 +7,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
+        /* ============================================================
+           CSS VARIABLES - Design System & Typography
+           ============================================================ */
         :root {
+            /* Brand Colors */
             --vtsu-turquoise: #00A5B3;
             --vtsu-red: #EC3754;
             --dark-gray: #1a1a1a;
             --white: #ffffff;
             --clock-bg: #2a2a2a;
+
+            /* Chart Colors */
+            --chart-temp: #ff6b6b;
+            --chart-wind: #1e90ff;
+            --chart-humidity: #00c48f;
+            --chart-pressure: #ffa500;
         }
 
         * {
@@ -36,12 +46,38 @@
             padding: 0.8rem 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
 
         .nav-title {
             font-size: 1.2rem;
             font-weight: bold;
             color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
 
         .container {
@@ -158,25 +194,6 @@
             text-align: center;
         }
 
-        .back-btn {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: var(--vtsu-turquoise);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .back-btn:hover {
-            background: var(--vtsu-red);
-        }
-
         /* Mobile responsiveness */
         @media (max-width: 1024px) {
             .nav-title {
@@ -213,7 +230,7 @@
 
             .back-btn {
                 padding: 6px 12px;
-                font-size: 14px;
+                font-size: 12px;
             }
         }
 
@@ -225,8 +242,6 @@
             .back-btn {
                 padding: 5px 10px;
                 font-size: 12px;
-                top: 0.75rem;
-                left: 0.75rem;
             }
 
             .container {
@@ -291,7 +306,6 @@
             .back-btn {
                 padding: 4px 8px;
                 font-size: 11px;
-                top: 0.5rem;
                 left: 0.5rem;
             }
 
@@ -363,10 +377,9 @@
 </head>
 <body>
     <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
         <div class="nav-title">VTSU Mesonet Full Dataset (Last 24 Hours)</div>  
     </nav>
-
-    <a href="index.html" class="back-btn">← Back</a>
 
     <div class="container">
         <div class="loading" id="loading">Loading station dataset...</div>      
@@ -389,8 +402,7 @@
     </div>
 
     <script>
-        const TOKEN = 'a5d9d976cd324d9e9b2c61fbc55b8b61';
-        const STID = 'LSC01';
+        const MESONET_CSV_URL = 'https://atmos.vermontstate.edu/common/mesowest.php';
         let charts = {};
         let updateInterval = null;
         let dailyResetTimeout = null;
@@ -436,15 +448,6 @@
             }
         }
 
-        function formatUtcForApi(date) {
-            const y = date.getUTCFullYear();
-            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(date.getUTCDate()).padStart(2, '0');
-            const hh = String(date.getUTCHours()).padStart(2, '0');
-            const mm = String(date.getUTCMinutes()).padStart(2, '0');
-            return `${y}${m}${d}${hh}${mm}`;
-        }
-
         function pushPoint(label, temp, wind, humidity, pressure) {
             const lastLabel = seriesState.timeLabels[seriesState.timeLabels.length - 1];
             if (label === lastLabel) return;
@@ -469,6 +472,20 @@
             if (value === 'M' || value === '' || value === 'NA') return null;   
             const num = Number(value);
             return Number.isFinite(num) ? num : null;
+        }
+
+        function parseTempValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // CSV data is already in Fahrenheit
+            return parsed;
+        }
+
+        function parseWindValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // CSV data is already in mph
+            return parsed;
         }
 
         function getTimeUntilNextReset() {
@@ -503,59 +520,96 @@
 
         async function fetchBackfill() {
             try {
-                console.log('Fetching backfill data...');
+                console.log('Fetching CSV backfill data...');
 
-                const now = new Date();
-                const today0000Z = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-                const startTime = formatUtcForApi(today0000Z);
-                const endTime = formatUtcForApi(now);
+                // Check if data is available from index.html
+                let csvData = window.fullMesonetData;
+                
+                // If not available from parent page, fetch directly
+                if (!csvData) {
+                    console.log('Fetching CSV directly from server...');
+                    const csvUrlWithCache = MESONET_CSV_URL + '?t=' + Date.now();
+                    const proxies = [
+                        url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
+                        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                        url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    ];
 
-                const apiUrl = `https://api.synopticdata.com/v2/stations/timeseries?stid=${STID}&start=${startTime}&end=${endTime}&token=${TOKEN}&units=english&obtimezone=utc`;
-                const corsProxy = 'https://corsproxy.io/?';
-
-                console.log('Fetching from Synoptic API timeseries...');    
-                const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
-
-                if (!response.ok) {
-                    throw new Error(`API returned ${response.status}`);     
+                    // Try each proxy in turn, validate it actually returned CSV
+                    const allSources = [
+                        ...proxies.map(buildUrl => buildUrl(csvUrlWithCache)),
+                        csvUrlWithCache  // direct fetch as last resort
+                    ];
+                    let lastError;
+                    for (const url of allSources) {
+                        try {
+                            const res = await fetch(url, { cache: 'no-store' });
+                            if (!res.ok) { lastError = new Error(`Status ${res.status} from ${url}`); continue; }
+                            const text = await res.text();
+                            // Validate it looks like CSV (first line should not be HTML)
+                            if (text.trim().startsWith('<') || text.trim().length === 0) {
+                                lastError = new Error(`Non-CSV response from ${url}`);
+                                console.warn(lastError.message);
+                                continue;
+                            }
+                            csvData = text;
+                            console.log(`CSV fetched successfully from: ${url}`);
+                            break;
+                        } catch (err) {
+                            lastError = err;
+                        }
+                    }
+                    if (!csvData) {
+                        throw new Error(`All sources failed. Last error: ${lastError?.message}`);
+                    }
                 }
 
-                const data = await response.json();
-
-                if (!data.STATION || !data.STATION.length) {
-                    throw new Error('No station data in timeseries response');
+                // Parse CSV data
+                const lines = csvData.trim().split('\n');
+                if (lines.length < 2) {
+                    throw new Error('No data in CSV');
                 }
 
-                const obs = data.STATION[0].OBSERVATIONS;
-                const dateTimes = obs.date_time || [];
-                const temps = obs.air_temp_set_1 || [];
-                const winds = obs.wind_speed_set_1 || [];
-                const humidities = obs.relative_humidity_set_1 || [];       
-                const pressures = obs.pressure_set_1 || [];
-
+                // Skip header (first line), process all data lines
                 seriesState.timeLabels = [];
                 seriesState.tempData = [];
                 seriesState.windData = [];
                 seriesState.humidityData = [];
                 seriesState.pressureData = [];
 
-                for (let i = 0; i < dateTimes.length; i++) {
-                    const dt = new Date(dateTimes[i]);
-                    const timeLabel = dt.toLocaleTimeString('en-US', {      
-                        hour12: false,
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',');
+                    if (values.length < 9) continue; // Skip incomplete rows
+                    
+                    // CSV columns: Date,Time,Precip,2m temp,RH,Dewpoint,Pressure,Wind Dir,Wind Avg,Wind Gust,...
+                    const time = values[1];
+                    const temp = parseTempValue(parseValue(values[3]));
+                    const dewpoint = parseValue(values[5]);
+                    const pressure = parseValue(values[6]); // Already in hPa
+                    const wind = parseWindValue(parseValue(values[8])); // Already in mph
+                    
+                    // Calculate relative humidity from temperature and dewpoint
+                    let humidity = null;
+                    if (temp !== null && dewpoint !== null) {
+                        // Magnus formula: RH = 100 * (e_s(Td) / e_s(T))
+                        const a = 17.625;
+                        const b = 243.04;
+                        const es_dewpoint = Math.exp((a * dewpoint) / (b + dewpoint));
+                        const es_temp = Math.exp((a * temp) / (b + temp));
+                        humidity = 100 * (es_dewpoint / es_temp);
+                    }
 
-                    seriesState.timeLabels.push(timeLabel);
-                    seriesState.tempData.push(parseValue(temps[i]));        
-                    seriesState.windData.push(parseValue(winds[i]));        
-                    seriesState.humidityData.push(parseValue(humidities[i]));
-                    seriesState.pressureData.push(parseValue(pressures[i]));
+                    seriesState.timeLabels.push(time);
+                    seriesState.tempData.push(temp);
+                    seriesState.windData.push(wind);
+                    seriesState.humidityData.push(humidity);
+                    seriesState.pressureData.push(pressure);
                 }
 
-                console.log(`Direct API backfill succeeded! Loaded ${seriesState.timeLabels.length} data points`);
+                console.log(`CSV backfill succeeded! Loaded ${seriesState.timeLabels.length} data points`);
 
+                // Keep only last maxPoints
                 if (seriesState.timeLabels.length > maxPoints) {
                     const startIndex = seriesState.timeLabels.length - maxPoints;
                     seriesState.timeLabels = seriesState.timeLabels.slice(startIndex);
@@ -566,7 +620,7 @@
                 }
             } catch (backfillError) {
                 console.error('Backfill failed:', backfillError.message);       
-                // Don't throw - allow latest data fetch to proceed
+                // Don't throw - allow to continue
             }
         }
 
@@ -590,7 +644,7 @@
                 const shouldBackfill = isInitialLoad || (lastResetUtcDate !== nowUtcDate);
 
                 if (shouldBackfill) {
-                    console.log(isInitialLoad ? 'Initial page load - attempting backfill from 0000Z...' : 'New UTC day detected - attempting backfill...');     
+                    console.log(isInitialLoad ? 'Initial page load - fetching CSV data...' : 'New UTC day detected - fetching fresh data...');     
                     seriesState.timeLabels = [];
                     seriesState.tempData = [];
                     seriesState.windData = [];
@@ -601,64 +655,7 @@
                     await fetchBackfill();
                 }
 
-                // Fetch and add latest data point
-                const apiUrl = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
-                const corsProxy = 'https://corsproxy.io/?';
-
-                let response;
-                try {
-                    response = await fetch(corsProxy + encodeURIComponent(apiUrl), { mode: 'cors' });
-                } catch (corsError) {
-                    console.log('CORS proxy failed, attempting direct fetch...');
-                    response = await fetch(apiUrl);
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);  
-                }
-
-                const data = await response.json();
-
-                if (data.SUMMARY && data.SUMMARY.RESPONSE_CODE && data.SUMMARY.RESPONSE_CODE !== 1) {
-                    throw new Error(data.SUMMARY.RESPONSE_MESSAGE || 'API error fetching latest data');
-                }
-
-                if (!data.STATION || !data.STATION.length) {
-                    throw new Error('No station data available');
-                }
-
-                const obs = data.STATION[0].OBSERVATIONS;
-                const temp = parseValue(obs.air_temp_value_1?.value);
-                const wind = parseValue(obs.wind_speed_value_1?.value);
-                const humidity = parseValue(obs.relative_humidity_value_1?.value);
-
-                // Try multiple pressure field names
-                let pressure = parseValue(obs.pressure_value_1?.value);
-                if (pressure === null) {
-                    pressure = parseValue(obs.altimeter_value_1?.value);        
-                }
-                if (pressure === null) {
-                    pressure = parseValue(obs.sea_level_pressure_value_1?.value);
-                }
-
-                if (temp === null && wind === null && humidity === null && pressure === null) {
-                    throw new Error('No valid station values available for plotting');
-                }
-
-                const timeSource = obs.air_temp_value_1?.date_time || obs.wind_speed_value_1?.date_time || obs.relative_humidity_value_1?.date_time || obs.pressure_value_1?.date_time || obs.altimeter_value_1?.date_time || obs.sea_level_pressure_value_1?.date_time;
-                const parsedTime = timeSource ? new Date(timeSource) : new Date();
-                const isValidTime = !Number.isNaN(parsedTime.getTime());        
-                const timeLabel = (isValidTime ? parsedTime : new Date()).toLocaleTimeString('en-US', {
-                    hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                pushPoint(timeLabel, temp, wind, humidity, pressure);
-
-                // Save state to localStorage after each update
-                saveStateToLocalStorage();
-
+                // Verify we have data
                 const hasAny = [
                     ...seriesState.tempData,
                     ...seriesState.windData,
@@ -667,10 +664,14 @@
                 ].some(value => Number.isFinite(value));
 
                 if (!hasAny) {
-                    throw new Error('No valid data points available yet');      
+                    throw new Error('No valid data points available');      
                 }
 
                 console.log('Current data points:', seriesState.timeLabels.length);
+                
+                // Save state to localStorage after each update
+                saveStateToLocalStorage();
+                
                 updateCharts(
                     seriesState.timeLabels,
                     seriesState.tempData,
@@ -786,8 +787,8 @@
 
             charts.pressure = new Chart(document.getElementById('pressureChart').getContext('2d'), {
                 type: 'line',
-                data: { labels: timeLabels, datasets: [{ label: 'Pressure (inHg)', data: pressureData, ...lineStyle('#ffa500') }] },
-                options: baseOptions('Pressure (inHg)')
+                data: { labels: timeLabels, datasets: [{ label: 'Pressure (hPa)', data: pressureData, ...lineStyle('#ffa500') }] },
+                options: baseOptions('Pressure (hPa)')
             });
         }
 
