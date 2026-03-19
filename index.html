@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vermont State University Lyndon | Weather Center</title>
+    <style>
+        /* ============================================================
+           CSS VARIABLES - Design System & Timing
+           ============================================================ */
+        :root {
+            /* Brand Colors */
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+
+            /* Animation Timing */
+            --alert-fade-in-duration: 0.6s;
+            --alert-scroll-duration-desktop: 20s;
+            --alert-scroll-duration-tablet: 30s;
+            --alert-scroll-duration-mobile: 35s;
+            --transition-smooth: 0.3s ease;
+
+            /* Navigation Layout */
+            --nav-height-desktop: 4rem;
+            --nav-height-mobile: 11rem;
+            --alert-bar-top: var(--nav-height-desktop);
+        }
+
+        /* ============================================================
+           GLOBAL STYLES
+           ============================================================ */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Navigation Bar --- */
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+            padding: 0.8rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        /* --- Clock Section --- */
+        .clock-container {
+            padding-left: 0;
+            display: flex;
+            gap: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            grid-column: 2;
+            justify-self: center;
+        }
+
+        .clock-item {
+            background: var(--clock-bg);
+            padding: 5px 12px;
+            border-radius: 4px;
+            border-left: 3px solid var(--vtsu-turquoise);
+        }
+
+        .clock-label {
+            font-size: 0.6rem;
+            color: #aaa;
+            display: block;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .time-display {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--white);
+            letter-spacing: 1px;
+        }
+
+        /* --- Nav Links --- */
+        .nav-links {
+            display: flex;
+            justify-content: flex-end;
+            grid-column: 3;
+            justify-self: end;
+            margin-right: 12px;
+        }
+
+        /* --- Left Hurricanes Dropdown --- */
+        .left-nav {
+            display: flex;
+            align-items: center;
+            grid-column: 1;
+            justify-self: start;
+            padding-left: 12px;
+        }
+
+        .left-nav .dropdown + .dropdown {
+            margin-left: 12px;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-btn {
+            background: transparent;
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 8px 10px;
+            font-weight: 700;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 110%;
+            background: var(--clock-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 6px 8px;
+            min-width: 280px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+
+        .dropdown-content a {
+            display: block;
+            color: var(--white);
+            text-decoration: none;
+            padding: 8px 10px;
+            font-weight: 600;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .nav-item {
+            white-space: nowrap;
+        }
+
+        .dropdown-content a:hover {
+            background: rgba(0,0,0,0.2);
+            color: var(--vtsu-turquoise);
+        }
+
+        .dropdown.open .dropdown-content {
+            display: block;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+            text-transform: uppercase;
+        }
+
+        .nav-links .nav-disabled {
+            color: #777;
+            margin: 0 15px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: not-allowed;
+            opacity: 0.7;
+            user-select: none;
+        }
+
+        .nav-links a:hover {
+            color: var(--vtsu-turquoise);
+        }
+
+        /* --- Layout Container --- */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .splash-container {
+            text-align: center;
+            background: transparent;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: none;
+            max-width: 1100px;
+            width: 95%;
+            color: var(--white);
+        }
+
+        .logo-area h1 { 
+            margin: 0; 
+            font-size: 2.2rem; 
+            color: var(--vtsu-turquoise);
+            font-weight: 800;
+        }
+
+        .logo-area h2 { 
+            margin: 5px 0 25px 0; 
+            font-size: 1.1rem; 
+            border-bottom: 4px solid var(--vtsu-red);
+            display: inline-block;
+            padding-bottom: 5px;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        /* --- Radar Frame --- */
+        .loop-frame {
+            width: 100%;
+            background-color: transparent;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 0 auto 1rem auto;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        #radar-loop {
+            width: 800px;
+            height: 600px;
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            object-fit: fill;
+            background-color: transparent;
+            margin: 0 auto;
+            border-radius: 4px;
+        }
+
+        .loop-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #666;
+            padding: 0;
+            text-align: center;
+        }
+
+        .status-dot {
+            height: 10px; width: 10px;
+            background-color: var(--vtsu-red);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .enter-btn {
+            margin-top: 2rem;
+            display: inline-block;
+            background-color: var(--vtsu-red);
+            color: white;
+            padding: 14px 50px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 800;
+            transition: transform 0.2s;
+        }
+
+        .enter-btn:hover {
+            transform: scale(1.02);
+            background-color: #d12a45;
+        }
+
+        /* --- Footer Credit --- */
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 1rem 0;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        /* --- Responsive: Portrait / narrow mobile (e.g., 9:16 devices) --- */
+        @media (orientation: portrait) and (max-width: 900px) {
+            .top-nav {
+                grid-template-columns: 1fr;
+                grid-auto-rows: auto;
+                padding: 0.6rem 0.6rem;
+                gap: 6px;
+            }
+
+            .left-nav, .clock-container, .nav-links {
+                grid-column: auto;
+                justify-self: center;
+                align-items: center;
+            }
+
+            .left-nav {
+                padding-left: 0;
+                justify-content: center;
+            }
+
+            .clock-container {
+                justify-self: center;
+                gap: 8px;
+                padding: 0 6px;
+                cursor: pointer;
+            }
+
+            .clock-item {
+                padding: 6px 10px;
+            }
+
+            .clock-label {
+                font-size: 0.55rem;
+            }
+
+            .time-display {
+                font-size: 0.9rem;
+            }
+
+            .nav-links {
+                justify-content: center;
+                flex-wrap: wrap;
+                margin: 6px 0 0 0;
+                padding: 0 6px 6px 6px;
+            }
+
+            .nav-links a {
+                margin: 6px 8px;
+                font-size: 0.95rem;
+                padding: 6px 8px;
+                display: inline-block;
+            }
+
+            .nav-links .nav-disabled {
+                margin: 6px 8px;
+                font-size: 0.95rem;
+                padding: 6px 8px;
+                display: inline-block;
+            }
+
+            .main-wrapper {
+                padding: 10px;
+            }
+
+            .splash-container {
+                padding: 1.2rem;
+                width: 98%;
+                max-width: 100%;
+            }
+
+            .logo-area h1 { 
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+
+            .logo-area h2 { 
+                margin: 5px 0 15px 0;
+                font-size: 0.9rem;
+                padding-bottom: 4px;
+            }
+
+            /* Make radar image responsive and avoid overflow on tall screens */
+            #radar-loop {
+                width: 90vw;
+                height: auto;
+                max-height: 50vh;
+                object-fit: contain;
+            }
+
+            .loop-frame { 
+                padding: 8px 0;
+                margin: 0 auto 0.8rem auto;
+            }
+
+            .loop-controls {
+                font-size: 0.75rem;
+                padding: 0;
+            }
+
+            .enter-btn { 
+                padding: 10px 20px;
+                font-size: 0.95rem;
+                margin-top: 10px;
+            }
+
+            footer { 
+                font-size: 0.75rem;
+                padding: 0.6rem 0;
+            }
+
+            /* Make dropdowns easier to interact with on touch */
+            .dropdown-btn { 
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+            .dropdown-content { 
+                min-width: 200px;
+                left: auto;
+                right: 0;
+            }
+            
+            /* Mobile alert bar - responsive positioning and animation timing */
+            .mesonet-alert-bar {
+                padding: 10px 0;
+                top: 11rem;
+            }
+
+            .mesonet-alert-prefix {
+                padding: 0 10px;
+                font-size: 0.8rem;
+                min-width: 130px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 130px;
+                animation: scroll-text var(--alert-scroll-duration-tablet) linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.8rem;
+            }
+
+            /* Mesonet widget mobile responsiveness */
+            .mesonet-header {
+                font-size: 1.3rem;
+                margin-bottom: 12px;
+            }
+
+            .mesonet-content {
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.95rem;
+            }
+
+            #lyndon-weather {
+                max-width: 90% !important;
+                padding: 18px !important;
+                margin: 18px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Ultra-narrow/small phone displays (max-width: 480px) */
+        @media (max-width: 480px) {
+            .top-nav {
+                padding: 0.5rem 0.4rem;
+                gap: 4px;
+            }
+
+            .clock-container {
+                gap: 6px;
+                padding: 0 4px;
+            }
+
+            .clock-item {
+                padding: 4px 8px;
+            }
+
+            .clock-label {
+                font-size: 0.5rem;
+            }
+
+            .time-display {
+                font-size: 0.8rem;
+            }
+
+            .nav-links a {
+                margin: 4px 6px;
+                font-size: 0.85rem;
+                padding: 4px 6px;
+            }
+
+            .dropdown-btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+
+            .dropdown-content {
+                min-width: 160px;
+                font-size: 0.85rem;
+            }
+
+            .main-wrapper {
+                padding: 8px;
+            }
+
+            .splash-container {
+                padding: 0.8rem;
+                width: 99%;
+            }
+
+            .logo-area h1 {
+                font-size: 1.2rem;
+                margin-bottom: 3px;
+            }
+
+            .logo-area h2 {
+                margin: 3px 0 10px 0;
+                font-size: 0.8rem;
+                padding-bottom: 3px;
+            }
+
+            #radar-loop {
+                width: 95vw;
+                max-height: 45vh;
+            }
+
+            .loop-frame {
+                padding: 6px 0;
+                margin: 0 auto 0.6rem auto;
+            }
+
+            .loop-controls {
+                font-size: 0.7rem;
+            }
+
+            .enter-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                margin-top: 8px;
+            }
+
+            footer {
+                font-size: 0.7rem;
+                padding: 0.5rem 0;
+            }
+
+            /* Mesonet mobile optimizations */
+            .mesonet-alert-prefix {
+                padding: 0 8px;
+                font-size: 0.75rem;
+                min-width: 110px;
+            }
+
+            .mesonet-alert-content {
+                margin-left: 110px;
+                animation: scroll-text 35s linear infinite;
+            }
+
+            .mesonet-alert-text {
+                font-size: 0.75rem;
+            }
+
+            /* Ultra-small device alert bar positioning and animation */
+            .mesonet-alert-bar {
+                top: 10rem;
+            }
+
+            .mesonet-alert-content {
+                animation: scroll-text var(--alert-scroll-duration-mobile) linear infinite;
+            }
+
+            .mesonet-header {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+
+            .mesonet-content {
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            .mesonet-data-item {
+                font-size: 0.85rem;
+            }
+
+            #lyndon-weather {
+                max-width: 95% !important;
+                padding: 15px !important;
+                margin: 12px auto !important;
+            }
+
+            .mesonet-content {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Prevent overflow issues */
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow-x: hidden;
+        }
+
+        /* Rising stack animations */
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUpStaggered {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mesonet-header {
+            animation: slideInUp 0.6s ease-out;
+        }
+
+        .mesonet-content {
+            animation: slideInUp 0.8s ease-out 0.2s both;
+        }
+
+        .mesonet-data-item {
+            animation: slideInUpStaggered 0.6s ease-out backwards;
+        }
+
+        .mesonet-data-item:nth-child(1) { animation-delay: 0.3s; }
+        .mesonet-data-item:nth-child(2) { animation-delay: 0.4s; }
+        .mesonet-data-item:nth-child(3) { animation-delay: 0.5s; }
+        .mesonet-data-item:nth-child(4) { animation-delay: 0.6s; }
+
+        /* Warning banner animations - Severity-based */
+        @keyframes tornadoEmergencyPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(128, 0, 128, 0.8), inset 0 0 10px rgba(128, 0, 128, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(128, 0, 128, 1), inset 0 0 15px rgba(128, 0, 128, 0.5);
+            }
+        }
+
+        @keyframes tornadoWarningSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes severeThunderstormSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scroll-text {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .mesonet-alert-bar {
+            width: 100%;
+            padding: 12px 0;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: var(--alert-bar-top);
+            left: 0;
+            z-index: 9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            animation: fadeIn var(--alert-fade-in-duration) ease-in;
+        }
+
+        .mesonet-alert-bar.winter-advisory {
+            background-color: #7b68ee;
+        }
+
+        .mesonet-alert-bar.winter-warning {
+            background-color: #ff69b4;
+        }
+
+        .mesonet-alert-bar.winter-watch {
+            background-color: #8b9dc3;
+        }
+
+        .mesonet-alert-prefix {
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+            padding: 0 15px;
+            position: relative;
+            z-index: 10;
+            background: inherit;
+            font-size: 0.95rem;
+        }
+
+        .mesonet-alert-content {
+            display: flex;
+            align-items: center;
+            animation: scroll-text var(--alert-scroll-duration-desktop) linear infinite;
+            white-space: nowrap;
+            margin-left: 180px;
+        }
+
+        .mesonet-alert-text {
+            color: white;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        #warning-notification {
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            margin: 0;
+        }
+
+        #warning-notification.tornado-emergency {
+            animation: tornadoEmergencyPulse 0.6s ease-in-out infinite, tornadoWarningSlide 0.5s ease-out;
+            border-bottom-color: #800080 !important;
+        }
+
+        #warning-notification.tornado-warning {
+            animation: tornadoWarningSlide 0.5s ease-out;
+        }
+
+        #warning-notification.severe-thunderstorm {
+            animation: severeThunderstormSlide 0.4s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="left-nav">
+            <div class="dropdown">
+                <button class="dropdown-btn nav-item" aria-haspopup="true" aria-expanded="false">Hurricanes ▾</button>
+                <div class="dropdown-content" role="menu" aria-label="Hurricanes menu">
+                    <a class="nav-item" href="https://www.aoml.noaa.gov/ftp/hrd/data/RTradar/" target="_blank" rel="noopener noreferrer">Tail Doppler Radar</a>
+                    <a class="nav-item" href="https://ftp.nhc.noaa.gov/atcf/btk/" target="_blank" rel="noopener noreferrer">ATCF</a>
+                    <a class="nav-item" href="https://www.nhc.noaa.gov/text/MIAREPRPD.shtml" target="_blank" rel="noopener noreferrer">TCPOD</a>
+                    <a class="nav-item" href="https://www.star.nesdis.noaa.gov/socd/mecb/sar/sarwinds_tropical.php?year=2026" target="_blank" rel="noopener noreferrer">SAR</a>
+                    <a class="nav-item" href="https://tropic.ssec.wisc.edu/real-time/mimtc/tc.shtml" target="_blank" rel="noopener noreferrer">Microwave</a>
+                    <a class="nav-item" href="https://rammb.cira.colostate.edu/ramsdis/online/tropical-new.asp" target="_blank" rel="noopener noreferrer">RAMMB</a>
+                    <a class="nav-item" href="https://cyclonicwx.com/recon/" target="_blank" rel="noopener noreferrer">Live Recon Data</a>
+                    <a class="nav-item" href="https://tropical.atmos.colostate.edu/Realtime/index.php?loc=northatlantic" target="_blank" rel="noopener noreferrer">Seasonal ACE</a>
+                    <a class="nav-item" href="https://manati.star.nesdis.noaa.gov/datasets/ASCATBData.php" target="_blank" rel="noopener noreferrer">ASCAT</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropdown-btn nav-item" aria-haspopup="true" aria-expanded="false">Severe Weather ▾</button>
+                <div class="dropdown-content" role="menu" aria-label="Severe Weather menu">
+                    <a class="nav-item" href="https://radarhub.arrc.ou.edu/archive/raxpol/" target="_blank" rel="noopener noreferrer">RaXpol</a>
+                    <a class="nav-item" href="http://data.nadocast.com/viewer.html" target="_blank" rel="noopener noreferrer">NadoCast</a>
+                    <a class="nav-item" href="https://weather.rap.ucar.edu" target="_blank" rel="noopener noreferrer">Rap Realtime</a>
+                    <a class="nav-item" href="https://svr.guru/index.php" target="_blank" rel="noopener noreferrer">DOW6/7</a>
+                    <a class="nav-item" href="https://atlas.niu.edu/forecast/scp/" target="_blank" rel="noopener noreferrer">CSU Extended Forecast</a>
+                    <a class="nav-item" href="https://autumnsky.us/vad/" target="_blank" rel="noopener noreferrer">VWP Hodographs</a>
+                    <a class="nav-item" href="https://weather.cod.edu/textserv/warnings" target="_blank" rel="noopener noreferrer">COD Severe warnings Dashboard</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropdown-btn nav-item" aria-haspopup="true" aria-expanded="false">Space Weather ▾</button>
+                <div class="dropdown-content" role="menu" aria-label="Space Weather & Auroras menu">
+                    <a class="nav-item" href="https://www.swpc.noaa.gov/" target="_blank" rel="noopener noreferrer">NOAA Space Weather Prediction Center</a>
+                    <a class="nav-item" href="https://www.swpc.noaa.gov/products/aurora-30-minute-forecast" target="_blank" rel="noopener noreferrer">Aurora 30-Min Forecast</a>
+                    <a class="nav-item" href="https://www.swpc.noaa.gov/products/3-day-forecast" target="_blank" rel="noopener noreferrer">3-Day Forecast</a>
+                    <a class="nav-item" href="goes-magnetometer.html" target="_self" rel="noopener noreferrer">GOES Magnetometer Data</a>
+                    <a class="nav-item" href="https://www.swpc.noaa.gov/products/solar-wind-integration-rapid-refresh" target="_blank" rel="noopener noreferrer">Solar Wind Data</a>
+                    <a class="nav-item" href="rtsw.html" target="_self" rel="noopener noreferrer">Real-Time Solar Wind - RTSW</a>
+                    <a class="nav-item" href="aurora-forecast.html" target="_self" rel="noopener noreferrer">AVC (Aurora Visibility Calculator)</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="clock-container">
+            <div class="clock-item">
+                <span class="clock-label">Local (VT)</span>
+                <span id="local-clock" class="time-display">00:00:00</span>
+            </div>
+            <div class="clock-item">
+                <span class="clock-label">Zulu (UTC)</span>
+                <span id="zulu-clock" class="time-display">00:00:00</span>
+            </div>
+        </div>
+
+            <div class="nav-links">
+            <span class="nav-disabled" aria-disabled="true">HREFv2</span>
+            <a href="#" id="btn-ecmwf" data-url="https://www.pivotalweather.com/model.php?m=ecmwf_full&p=prateptype_cat_ecmwf-imp&rh=2026021612&fh=12&r=us_ne&dpdt=&mc=">ECMWF</a>
+            <a href="#" id="btn-hrrr" data-url="https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=">HRRR</a>
+            <a href="#" id="btn-mesonet" data-url="https://atmos.northernvermont.edu/weather-data/weather-station/">VTSU Mesonet</a>
+
+        </div>
+        
+        <div></div>
+    </nav>
+
+    <div class="main-wrapper">
+        <div id="warning-notification" style="display: none;"></div>
+        <div class="splash-container">
+            <div class="logo-area">
+                <h1>Vermont State University</h1>
+                <h2>Lyndon Weather Center</h2>
+            </div>
+
+            <div class="loop-frame">
+                <img id="radar-loop" src="https://radar.weather.gov/ridge/standard/KCXX_loop.gif" alt="NWS KCXX Burlington Radar Loop">
+            </div>
+
+            <div class="loop-controls">
+                <div>RADAR NWS KCXX (Burlington, VT)</div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="border-top: 1px solid rgba(255, 255, 255, 0.3); padding-top: 0.8rem;">
+        By Emerson Charles (she/her)<3
+    </footer>
+    <footer>
+        If you have any questions or need assistance, please contact me dxc00407@vsc.edu
+    </footer>
+
+    <script>
+        let use24Hour = true;
+
+        function updateClocks() {
+            const now = new Date();
+            const localOptions = { hour12: !use24Hour, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('local-clock').textContent = now.toLocaleTimeString('en-US', localOptions);
+
+            // Get UTC time directly using getUTC methods for reliability
+            const utcHours = String(now.getUTCHours()).padStart(2, '0');
+            const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+            const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
+            const zuluTime = `${utcHours}:${utcMinutes}:${utcSeconds}Z`;
+            document.getElementById('zulu-clock').textContent = zuluTime;
+        }
+
+        setInterval(updateClocks, 1000);
+        updateClocks();
+
+        setInterval(() => {
+            const radarImg = document.getElementById('radar-loop');
+            const currentSrc = radarImg.src.split('?')[0];
+            radarImg.src = currentSrc + '?t=' + new Date().getTime();
+        }, 300000);
+
+        const clockContainer = document.querySelector('.clock-container');
+        if (clockContainer) {
+            clockContainer.addEventListener('click', function() {
+                use24Hour = !use24Hour;
+                updateClocks();
+            });
+        }
+
+        (function() {
+            const ecmwfBtn = document.getElementById('btn-ecmwf');
+            if (ecmwfBtn) {
+                ecmwfBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = ecmwfBtn.dataset.url || 'https://www.tropicaltidbits.com/analysis/models/?model=ecmwf&region=conus&pkg=mslp_pcpn';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const hrrrBtn = document.getElementById('btn-hrrr');
+            if (hrrrBtn) {
+                hrrrBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = hrrrBtn.dataset.url || 'https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const mesonetBtn = document.getElementById('btn-mesonet');
+            if (mesonetBtn) {
+                mesonetBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showMesonetWidget();
+                });
+            }
+
+            // Restore saved view on page load
+            window.addEventListener('DOMContentLoaded', function() {
+                const savedView = localStorage.getItem('currentView');
+                if (savedView === 'mesonet') {
+                    window.showMesonetWidget();
+                }
+            });
+        })();
+
+        // Mesonet Widget Functionality
+        (function() {
+            const TOKEN = 'fa7fb795d0a4483f97def20cfca678e0';
+            const API_KEY = 'KujVR4WLIydlBfMRpUb9BPswVIloBbZqlEzcpmsLD7';
+            const STID = 'LSC01';
+            const FALLBACK_STID = 'LSC02';
+            const API_URL = `https://api.synopticdata.com/v2/stations/latest?stid=${STID}&token=${TOKEN}&units=english`;
+            let weatherUpdateInterval = null;
+            let dailyResetTimeout = null;
+            let lastObservationTime = null; // Track the last observation timestamp
+            
+            /* Store latest weather data for CoCoRaHS integration */
+            let latestWeatherData = {
+                temperature: 'N/A',
+                windSpeed: 'N/A',
+                windDirection: 'N/A',
+                windDirectionCompass: 'N/A',
+                pressure: 'N/A',
+                humidity: 'N/A'
+            };
+
+            function getTimeUntilNextReset() {
+                const now = new Date();
+                const nextReset = new Date(now);
+                nextReset.setUTCHours(24, 0, 0, 0);
+                if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && now.getUTCSeconds() < 1) {
+                    nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+                }
+                return nextReset.getTime() - now.getTime();
+            }
+
+            function scheduleDailyReset() {
+                if (dailyResetTimeout) {
+                    clearTimeout(dailyResetTimeout);
+                }
+                const timeUntilReset = getTimeUntilNextReset();
+                dailyResetTimeout = setTimeout(() => {
+                    fetchWeather();
+                    scheduleDailyReset();
+                }, timeUntilReset);
+            }
+
+            /**
+             * Converts wind direction from degrees to compass letters
+             * @param {number} degrees - Wind direction in degrees (0-360)
+             * @returns {string} Compass direction (e.g., "N", "NE", "E", etc.)
+             */
+            function getCompassDirection(degrees) {
+                if (degrees === null || degrees === undefined || degrees === 'N/A') return 'N/A';
+                
+                const compassPoints = [
+                    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'
+                ];
+                
+                const num = parseInt(degrees);
+                const index = Math.round(num / 22.5) % 16;
+                return compassPoints[index];
+            }
+
+            /**
+             * Initializes and displays the Lyndon Weather Station mesonet widget.
+             * Loads real-time weather data from Synoptic Data API and active
+             * winter weather alerts from NWS API. Persists view state in localStorage.
+             * 
+             * Data sources:
+             * - Synoptic Data API: LSC01 (Lyndon State College station)
+             * - NWS Weather Alerts API: Real-time weather alerts
+             */
+            window.showMesonetWidget = function() {
+                localStorage.setItem('currentView', 'mesonet');
+                const splashContainer = document.querySelector('.splash-container');
+                if (!splashContainer) return;
+
+                splashContainer.innerHTML = `
+                    <div id="mesonet-alert-container"></div>
+                    <div class="logo-area">
+                        <h1>Vermont State University</h1>
+                        <h2>Lyndon Weather Station</h2>
+                    </div>
+
+                    <div id="lyndon-weather" style="font-family: sans-serif; padding: 20px; border: 2px solid var(--vtsu-turquoise); border-radius: 8px; background-color: rgba(0, 165, 179, 0.1); margin: 20px auto; max-width: 600px;">
+                        <p style="font-size: 1.2rem; color: var(--white);">Loading latest Lyndon weather data...</p>
+                    </div>
+
+                    <button onclick="resetToRadar()" style="background: var(--vtsu-red); color: white; border: none; padding: 12px 35px; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; margin-top: 20px;">Back to Radar</button>
+                `;
+
+                fetchWeather();
+                fetchMesonetWinterAlerts();
+                if (weatherUpdateInterval) clearInterval(weatherUpdateInterval);
+                weatherUpdateInterval = setInterval(fetchWeather, 300000);
+                scheduleDailyReset();
+            };
+
+            /**
+             * Fetches real-time weather observations from Lyndon weather station.
+             * Data from Synoptic Data API (Station ID: LSC01)
+             * 
+             * Parameters queried:
+             * - air_temp_value_1: Temperature (Fahrenheit)
+             * - wind_speed_value_1: Wind speed (mph)
+             * - relative_humidity_value_1: Relative humidity (%)
+             * - wind_direction_value_1: Wind direction (degrees)
+             * 
+             * Uses CORS proxy as fallback for cross-origin requests
+             */
+            window.fetchWeather = async function() {
+                const weatherDiv = document.getElementById('lyndon-weather');
+                try {
+                    // Fetch latest observation from Synoptic Data API
+                    let data = null;
+                    for (const stid of [STID, FALLBACK_STID]) {
+                        try {
+                            const url = `https://api.synopticdata.com/v2/stations/latest?stid=${stid}&token=${TOKEN}&units=english`;
+                            const res = await fetch(url);
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                            const json = await res.json();
+                            if (json.SUMMARY?.RESPONSE_CODE === 1 && json.STATION?.length > 0) {
+                                data = json;
+                                break;
+                            }
+                        } catch (e) {
+                            console.warn(`Station ${stid} failed:`, e);
+                        }
+                    }
+                    if (!data) throw new Error('All stations failed to return data');
+
+                    const obs = data.STATION[0].OBSERVATIONS;
+                    const temp = obs.air_temp_value_1?.value ?? null;
+                    const wind = obs.wind_speed_value_1?.value ?? null;
+                    const humidity = obs.relative_humidity_value_1?.value ?? null;
+                    const windDir = obs.wind_direction_value_1?.value ?? null;
+                    const pressure = obs.sea_level_pressure_value_1d?.value ?? obs.altimeter_value_1d?.value ?? null;
+                    const dateTimeStr = obs.air_temp_value_1?.date_time ?? null;
+
+                    /* Parse observation timestamp */
+                    let fetchTime24 = 'N/A';
+                    let zuluTime = 'N/A';
+                    if (dateTimeStr) {
+                        const dt = new Date(dateTimeStr);
+                        zuluTime = dt.toISOString().split('T')[1].substring(0, 8) + 'Z';
+                        fetchTime24 = dt.toLocaleTimeString('en-US', {
+                            hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
+                            timeZone: 'America/New_York'
+                        });
+                        if (dateTimeStr !== lastObservationTime) {
+                            lastObservationTime = dateTimeStr;
+                        }
+                    }
+
+                    /* Store latest weather data for CoCoRaHS integration */
+                    latestWeatherData.temperature = temp !== null ? temp.toFixed(2) : 'N/A';
+                    latestWeatherData.windSpeed = wind !== null ? wind.toFixed(2) : 'N/A';
+                    latestWeatherData.windDirection = windDir !== null ? windDir.toFixed(0) : 'N/A';
+                    latestWeatherData.windDirectionCompass = getCompassDirection(windDir !== null ? windDir : 0);
+                    latestWeatherData.pressure = pressure !== null ? pressure.toFixed(1) : 'N/A';
+                    latestWeatherData.humidity = humidity !== null ? humidity.toFixed(1) : 'N/A';
+
+                    if (weatherDiv) {
+                        weatherDiv.innerHTML = `
+                            <h3 class="mesonet-header" style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon</h3>
+                            <div class="mesonet-content" style="font-size: 1.1rem; color: var(--white); line-height: 1.8; text-align: left; max-width: 500px; margin: 0 auto;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="mesonet-data-item"><strong>Temperature:</strong> ${temp !== null ? temp.toFixed(1) : 'N/A'}°F</div>
+                                    <div class="mesonet-data-item"><strong>Wind Speed:</strong> ${wind !== null ? wind.toFixed(1) : 'N/A'} mph</div>
+                                    <div class="mesonet-data-item"><strong>Wind Direction:</strong> ${windDir !== null ? getCompassDirection(windDir) : 'N/A'} ${windDir !== null ? '(' + windDir.toFixed(0) + '°)' : ''}</div>
+                                    <div class="mesonet-data-item"><strong>Humidity:</strong> ${humidity !== null ? humidity.toFixed(1) : 'N/A'}%</div>
+                                </div>
+                                <div style="margin-top: 15px; text-align: center;">
+                                    <small style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Data Updated: ${fetchTime24} (${zuluTime})</small>
+                                </div>
+                                <div style="margin-top: 15px; text-align: center;">
+                                    <a href="mesonet-full.html" target="_self" style="color: var(--vtsu-turquoise); text-decoration: underline;">View Full Station Data</a>
+                                </div>
+                                <div style="margin-top: 12px; text-align: center;">
+                                    <a href="cocorahs.html" style="color: var(--vtsu-turquoise); text-decoration: underline;">Report to CoCoRaHS (Login Required)</a>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch weather data:", err);
+                    if (weatherDiv) {
+                        weatherDiv.innerHTML = `
+                            <h3 style="color: var(--vtsu-turquoise); margin-bottom: 15px; font-size: 1.5rem;">VTSU Lyndon Weather Station</h3>
+                            <p style="color: var(--vtsu-red); margin-bottom: 15px;">Unable to load live data at this time.</p>
+                            <p style="color: var(--white); font-size: 0.95rem; margin-bottom: 15px;">${err.message}</p>
+                            <a href="https://atmos.vermontstate.edu" target="_blank"
+                               style="display: inline-block; background: var(--vtsu-turquoise); color: white; padding: 10px 25px; border-radius: 4px; text-decoration: none; font-weight: bold;">
+                                View Station Website
+                            </a>
+                        `;
+                    }
+                }
+            };
+            /**
+             * Fetches active winter weather alerts from NWS API and displays
+             * them on the Lyndon Weather Station page. Filters alerts by:
+             * - Alert type (Winter Advisory, Warning, Watch, Tornado Watch)
+             * - Geographic location (Caledonia County area)
+             * 
+             * Color coding:
+             * - #7b68ee (Blue Violet): Winter Weather Advisory
+             * - #ff69b4 (Hot Pink): Winter Storm Warning (highest severity)
+             * - #8b9dc3 (Light Blue Gray): Winter Storm Watch
+             */
+            window.fetchMesonetWinterAlerts = async function() {
+                try {
+                    const nwsUrl = 'https://api.weather.gov/alerts/active';
+                    const response = await fetch(nwsUrl);
+                    const data = await response.json();
+                    
+                    /* Priority-ordered alert types to monitor */
+                    const winterAlertTypes = [
+                        'Winter Weather Advisory',
+                        'Winter Storm Warning',
+                        'Winter Storm Watch',
+                        'Tornado Watch'
+                    ];
+                    
+                    /* Filter alerts affecting Lyndon/Caledonia County area */
+                    const lyndonAlerts = data.features.filter(feature => {
+                        const props = feature.properties;
+                        const isWinterAlert = winterAlertTypes.includes(props.event);
+                        const affectsLyndon = props.areaDesc && (
+                            props.areaDesc.includes('Caledonia') || 
+                            props.areaDesc.includes('Lyndonville') || 
+                            props.areaDesc.includes('St Johnsbury')
+                        );
+                        return isWinterAlert && affectsLyndon;
+                    });
+                    
+                    if (lyndonAlerts.length > 0) {
+                        const alert = lyndonAlerts[0];
+                        const alertType = alert.properties.event;
+                        const alertText = alert.properties.headline || `${alertType} issued`;
+                        
+                        /* Map alert severity to color-coded UI class */
+                        let barClass = 'winter-advisory';
+                        if (alertType === 'Winter Storm Warning') {
+                            barClass = 'winter-warning';
+                        } else if (alertType === 'Winter Storm Watch') {
+                            barClass = 'winter-watch';
+                        }
+                        
+                        const alertContainer = document.getElementById('mesonet-alert-container');
+                        if (alertContainer) {
+                            alertContainer.innerHTML = `
+                                <div class="mesonet-alert-bar ${barClass}">
+                                    <span class="mesonet-alert-prefix">Local Weather Alerts:</span>
+                                    <div class="mesonet-alert-content">
+                                        <span class="mesonet-alert-text">${alertText}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Could not fetch winter alerts for mesonet:', err);
+                }
+            };
+
+            /**
+             * Copies latest weather data to clipboard and opens CoCoRaHS reporting page
+             * User can then paste the data into the Observation Notes field
+             */
+            window.openCoCoRaHSWithData = function(event) {
+                event.preventDefault();
+                
+                /* Generate observation notes with latest weather data */
+                const obsNotes = `Conditions at Observation time:\nTemperature: ${latestWeatherData.temperature}°F\nWind Speed: ${latestWeatherData.windSpeed} m/s\nWind Direction: ${latestWeatherData.windDirectionCompass} (${latestWeatherData.windDirection}°)\nPressure: ${latestWeatherData.pressure} hPa\nHumidity: ${latestWeatherData.humidity}%`;
+                
+                /* Copy weather data to clipboard */
+                navigator.clipboard.writeText(obsNotes).then(() => {
+                    console.log('Station data copied to clipboard');
+                    /* Open CoCoRaHS reporting page */
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                }).catch(err => {
+                    console.error('Failed to copy to clipboard:', err);
+                    alert('Could not copy to clipboard. Here is your station data:\n\n' + obsNotes);
+                    window.open('https://www.cocorahs.org/Admin/MyDataEntry/DailyPrecipReport.aspx', '_blank', 'noopener,noreferrer');
+                });
+            };
+
+            window.resetToRadar = function() {
+                localStorage.removeItem('currentView');
+                if (weatherUpdateInterval) {
+                    clearInterval(weatherUpdateInterval);
+                    weatherUpdateInterval = null;
+                }
+                if (dailyResetTimeout) {
+                    clearTimeout(dailyResetTimeout);
+                    dailyResetTimeout = null;
+                }
+
+                const splashContainer = document.querySelector('.splash-container');
+                if (!splashContainer) return;
+
+                splashContainer.innerHTML = `
+                    <div class="logo-area">
+                        <h1>Vermont State University</h1>
+                        <h2>Lyndon Weather Center</h2>
+                    </div>
+
+                    <div class="loop-frame">
+                        <img id="radar-loop" src="https://radar.weather.gov/ridge/standard/KCXX_loop.gif" alt="NWS KCXX Burlington Radar Loop">
+                    </div>
+
+                    <div class="loop-controls">
+                        <div>Local Weather Radar</div>
+                    </div>
+                `;
+                
+                // Restart radar animation after DOM update
+                setTimeout(() => {
+                    setInterval(() => {
+                        const radarImg = document.getElementById('radar-loop');
+                        if (radarImg) {
+                            const currentSrc = radarImg.src.split('?')[0];
+                            radarImg.src = currentSrc + '?t=' + new Date().getTime();
+                        }
+                    }, 300000);
+                }, 100);
+
+                /* Fetch and display alerts when returning to main weather page */
+                // Alerts only shown on Lyndon Weather Station page
+            };
+        })();
+
+        // Temporary Radar Scheduler - Switch to Northeast radar until Monday 0000z
+        (function() {
+            const radarImg = document.getElementById('radar-loop');
+            const northeastRadarUrl = 'https://radar.weather.gov/ridge/standard/NORTHEAST_loop.gif';
+            const kcxxRadarUrl = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
+            
+            // Switch to Northeast radar immediately
+            if (radarImg) {
+                radarImg.src = northeastRadarUrl;
+                console.log('%c[SCHEDULER] Switched to Northeast radar', 'color: #00ff00; font-weight: bold');
+            }
+            
+            // Calculate time until Monday 0000z
+            const now = new Date();
+            let mondayRevert = new Date();
+            
+            // Get next Monday
+            const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+            mondayRevert.setDate(now.getDate() + daysUntilMonday);
+            mondayRevert.setHours(0, 0, 0, 0); // Set to 0000z (midnight UTC)
+            
+            const timeUntilRevert = mondayRevert - now;
+            console.log('%c[SCHEDULER] Radar will revert to KCXX in ' + Math.round(timeUntilRevert / 1000 / 60 / 60) + ' hours', 'color: #ffaa00; font-weight: bold');
+            
+            // Schedule revert to KCXX at Monday 0000z
+            setTimeout(() => {
+                if (radarImg) {
+                    radarImg.src = kcxxRadarUrl;
+                    console.log('%c[SCHEDULER] Reverted radar to KCXX', 'color: #ff6b6b; font-weight: bold');
+                }
+            }, timeUntilRevert);
+        })();
+
+        // Warning System - Fetch and display severe weather warnings
+        (function() {
+            console.log('%c[DEBUG] Warning System IIFE starting...', 'color: #ff00ff; font-weight: bold');
+            let lastWarnings = {};
+            let warningTimeout = null;
+            let activeWarningId = null;
+            let tornadoEmergencyTimeout = null;
+            let previousWarningState = {}; // Track radar vs observed state for upgrade detection
+            const originalRadarSrc = 'https://radar.weather.gov/ridge/standard/KCXX_loop.gif';
+            
+            // NWS Office to nearest radar mapping
+            const officeToRadar = {
+                'KJKL': 'KJKX',  // Jackson, KY
+                'KILX': 'KILX',  // Lincoln, IL
+                'KPBZ': 'KPBZ',  // Pittsburg, PA
+                'KLMK': 'KLMK',  // Louisville, KY
+                'KOUN': 'KOUN',  // Norman, OK
+                'KTLX': 'KTLX',  // Tulsa, OK
+                'KVTX': 'KVTX',  // Fort Worth, TX
+                'KMEG': 'KMEG'   // Memphis, TN
+            };
+
+            // Fetch warnings from NWS API
+            function fetchWarnings() {
+                const nwsUrl = 'https://api.weather.gov/alerts/active';
+                
+                // Determine if we need CORS proxy
+                let apiUrl;
+                if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                    // Local development - direct API call
+                    apiUrl = nwsUrl;
+                } else {
+                    // GitHub Pages - use CORS proxy
+                    const encodedUrl = encodeURIComponent(nwsUrl);
+                    apiUrl = `https://corsproxy.io/?${encodedUrl}`;
+                }
+
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Warnings data received:', data);
+                        parseWarningsFromJSON(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching warnings:', error);
+                    });
+            }
+
+            // Parse warnings from NWS JSON response
+            function parseWarningsFromJSON(data) {
+                try {
+                    if (!data.features || data.features.length === 0) {
+                        console.log('No active warnings');
+                        // If no warnings, clear any displayed warning
+                        if (Object.keys(lastWarnings).length === 0) {
+                            closeWarning();
+                        }
+                        return;
+                    }
+
+                    const warnings = data.features.map(feature => ({
+                        type: feature.properties.event,
+                        headline: feature.properties.headline,
+                        description: feature.properties.description,
+                        severity: feature.properties.severity,
+                        issuingOffice: feature.properties.senderName,
+                        areaDescription: feature.properties.areaDesc,
+                        issuedTime: new Date(feature.properties.sent).toLocaleTimeString('en-US', { hour12: false, timeZone: 'UTC' }) + 'Z',
+                        cities: feature.properties.areaDesc || 'N/A',
+                        id: feature.properties.id
+                    }));
+
+                    // Check for local warnings (containing specific Vermont cities/towns)
+                    const localTriggers = ['St Johnsbury', 'Lyndonville', 'Caledonia', 'Danville'];
+                    const localWarnings = warnings.filter(w => 
+                        localTriggers.some(trigger => w.cities.includes(trigger))
+                    );
+
+                    // Check for tornado emergency (highest priority)
+                    const tornadoEmergencies = warnings.filter(w => w.type === 'Tornado Emergency');
+                    // Check for tornado warnings
+                    const tornadoWarnings = warnings.filter(w => w.type === 'Tornado Warning');
+                    // Check for severe thunderstorm warnings
+                    const severeThunderstormWarnings = warnings.filter(w => w.type === 'Severe Thunderstorm Warning');
+
+                    if (tornadoEmergencies.length > 0) {
+                        const warning = tornadoEmergencies[0];
+                        displayWarning({
+                            type: 'Tornado Emergency',
+                            displayEvent: 'Tornado Emergency (Observed)',
+                            issuingOffice: warning.issuingOffice,
+                            issuedTime: warning.issuedTime,
+                            cities: warning.cities,
+                            id: warning.id
+                        });
+                    } else if (tornadoWarnings.length > 0) {
+                        // Show local tornado warning if available, or first tornado warning
+                        const localWarning = tornadoWarnings.find(w => 
+                            ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
+                        ) || tornadoWarnings[0];
+                        // Extract "Radar Indicated" or "Observed" from headline if present
+                        const isRadarIndicated = localWarning.headline.includes('Radar Indicated');
+                        const isObserved = !isRadarIndicated;
+                        
+                        // Check if this is an upgrade from Radar Indicated to Observed (for internal tracking)
+                        const wasUpgraded = isObserved && previousWarningState[localWarning.id] === 'Radar Indicated';
+                        
+                        // Update previous state for next comparison
+                        previousWarningState[localWarning.id] = isRadarIndicated ? 'Radar Indicated' : 'Observed';
+                        
+                        displayWarning({
+                            type: 'Tornado Warning',
+                            displayEvent: `Tornado Warning (Observed)`,
+                            issuingOffice: localWarning.issuingOffice,
+                            issuedTime: localWarning.issuedTime,
+                            cities: localWarning.cities,
+                            local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
+                            id: localWarning.id,
+                            upgraded: wasUpgraded
+                        });
+                    } else if (severeThunderstormWarnings.length > 0) {
+                        // Show local severe thunderstorm warning if available, or first one
+                        const localWarning = severeThunderstormWarnings.find(w => 
+                            ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => w.cities.includes(city))
+                        ) || severeThunderstormWarnings[0];
+                        // Include severity level (Considerable, Destructive, etc)
+                        const severity = localWarning.severity ? ` - ${localWarning.severity}` : '';
+                        displayWarning({
+                            type: 'Severe Thunderstorm Warning',
+                            displayEvent: `Severe Thunderstorm Warning${severity}`,
+                            issuingOffice: localWarning.issuingOffice,
+                            issuedTime: localWarning.issuedTime,
+                            cities: localWarning.cities,
+                            local: ['St Johnsbury', 'Lyndonville', 'Caledonia'].some(city => localWarning.cities.includes(city)),
+                            id: localWarning.id
+                        });
+                    }
+                    lastWarnings = warnings;
+                } catch (error) {
+                    console.error('Error parsing warnings:', error);
+                }
+            }
+
+            // Display warning notification
+            function displayWarning(warning) {
+                // Only show if it's different from the last one
+                if (activeWarningId === warning.id) return;
+                activeWarningId = warning.id;
+
+                // Clear any existing timeout
+                if (warningTimeout) clearTimeout(warningTimeout);
+
+                const div = document.getElementById('warning-notification');
+                if (!div) return;
+
+                const isLocal = warning.local || warning.cities.includes('St Johnsbury') || warning.cities.includes('Lyndonville') || warning.cities.includes('Caledonia');
+                const displayText = isLocal ? 'SEEK SHELTER NOW' : `${warning.displayEvent || warning.type}`;
+                const isTornadoEmergency = warning.type === 'Tornado Emergency';
+                const isTornadoWarning = warning.type === 'Tornado Warning';
+                const isSevereThunderstorm = warning.type === 'Severe Thunderstorm Warning';
+                
+                // Determine text color based on warning type
+                let textColor, subtitleColor, citiesColor;
+                if (isSevereThunderstorm) {
+                    textColor = '#000000';      // Black for severe thunderstorm
+                    subtitleColor = '#333333';  // Dark gray for details
+                    citiesColor = '#333333';    // Dark gray for cities
+                } else {
+                    textColor = isLocal ? '#FF6B6B' : '#FFD700';  // Red/Yellow for tornado warnings
+                    subtitleColor = '#ccc';     // Light gray
+                    citiesColor = '#aaa';       // Medium gray
+                }
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; padding: 0;">
+                        <div style="padding: 0 20px;">
+                            <div style="font-size: 1.4rem; font-weight: bold; color: ${textColor};">
+                                ${displayText}
+                            </div>
+                            <div style="font-size: 0.9rem; color: ${subtitleColor}; margin-top: 5px;">
+                                ${warning.type} | Issued: ${warning.issuedTime}
+                            </div>
+                            <div style="font-size: 0.85rem; color: ${citiesColor}; margin-top: 3px;">
+                                ${warning.cities}
+                            </div>
+                        </div>
+                        <button onclick="closeWarning()" style="background: transparent; color: white; border: none; padding: 0 20px; cursor: pointer; font-size: 1.5rem; font-weight: bold; margin-right: 10px; opacity: 0.8; flex-shrink: 0; display: flex; align-items: center; height: 100%;">
+                            ×
+                        </button>
+                    </div>
+                `;
+                
+                // Set background based on severity
+                if (isTornadoEmergency) {
+                    div.style.backgroundColor = '#800080';
+                } else if (isTornadoWarning) {
+                    div.style.backgroundColor = isLocal ? '#8B0000' : '#FF4500';
+                } else {
+                    div.style.backgroundColor = '#FF8C00';
+                }
+                
+                div.style.color = 'white';
+                div.style.padding = '15px 0';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+                div.style.borderBottom = isTornadoEmergency ? '4px solid #800080' : '2px solid rgba(255,255,255,0.3)';
+                div.style.borderRadius = '0';
+                div.style.marginBottom = '0';
+
+                // Remove all animation classes first
+                div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                
+                // Apply appropriate animation class based on severity
+                if (isTornadoEmergency) {
+                    div.classList.add('tornado-emergency');
+                } else if (isTornadoWarning) {
+                    div.classList.add('tornado-warning');
+                } else {
+                    div.classList.add('severe-thunderstorm');
+                }
+
+                const dismissTime = isTornadoEmergency ? 20000 : (isTornadoWarning ? 15000 : 10000);
+                warningTimeout = setTimeout(() => {
+                    closeWarning();
+                }, dismissTime);
+            }
+
+            // Close warning notification
+            window.closeWarning = function() {
+                const div = document.getElementById('warning-notification');
+                if (div) {
+                    div.style.animation = 'fadeOut 0.5s ease-out forwards';
+                    setTimeout(() => {
+                        div.style.display = 'none';
+                        div.classList.remove('tornado-emergency', 'tornado-warning', 'severe-thunderstorm');
+                    }, 500);
+                }
+                activeWarningId = null;
+            };
+
+            // Expose displayWarning to window so test functions and console can call it
+            window.displayWarning = displayWarning;
+            console.log('%c[DEBUG] displayWarning exposed to window', 'color: #00ff00; font-weight: bold');
+
+            function switchRadarToWarningLocation(officeCode) {
+                const radarImg = document.getElementById('radar-loop');
+                const radarCode = officeToRadar[officeCode] || 'KCXX';
+                const newRadarSrc = `https://radar.weather.gov/ridge/standard/${radarCode}_loop.gif`;
+                
+                // Clear any existing tornado emergency timeout
+                if (tornadoEmergencyTimeout) {
+                    clearTimeout(tornadoEmergencyTimeout);
+                }
+                
+                radarImg.src = newRadarSrc;
+                
+                // Keep the custom radar for 30 minutes from the tornado emergency
+                tornadoEmergencyTimeout = setTimeout(() => {
+                    restoreOriginalRadar();
+                    tornadoEmergencyTimeout = null;
+                }, 1800000); // 30 minutes
+            }
+
+            function restoreOriginalRadar() {
+                const radarImg = document.getElementById('radar-loop');
+                radarImg.src = originalRadarSrc + '?t=' + new Date().getTime();
+                if (tornadoEmergencyTimeout) {
+                    clearTimeout(tornadoEmergencyTimeout);
+                    tornadoEmergencyTimeout = null;
+                }
+            }
+
+            // Fetch warnings every 30 seconds
+            fetchWarnings();
+            setInterval(fetchWarnings, 30000);
+
+            // TEST FUNCTIONS - Call from browser console
+            window.testTornadoEmergency = function(office = 'KOUN', cities = 'Canadian, Texas, Beaver, Beaver (Oklahoma)') {
+                const testWarning = {
+                    type: 'Tornado Emergency',
+                    displayEvent: 'Tornado Emergency (Observed)',
+                    issuingOffice: office,
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: cities,
+                    id: `test-tornado-emergency-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testLocalTornadoWarning = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'St Johnsbury, Lyndonville, Caledonia, Danville, VT',
+                    local: true,
+                    id: `test-local-tornado-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testLocalSevereWarning = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'St Johnsbury, Lyndonville, Caledonia, VT',
+                    local: true,
+                    id: `test-local-severe-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testTornadoWarning = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Orleans, Essex, Caledonia Counties, VT',
+                    id: `test-tornado-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testSevereThunderstorm = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Chittenden, Addison, Rutland Counties, VT',
+                    id: `test-svr-tstm-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testContinuation = function() {
+                const testWarning = {
+                    type: 'Tornado Warning',
+                    displayEvent: 'Tornado Warning (Continuation)',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Multiple areas',
+                    id: `test-continuation-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testSevereThunderstormContinuation = function() {
+                const testWarning = {
+                    type: 'Severe Thunderstorm Warning',
+                    displayEvent: 'Severe Thunderstorm Warning (Continuation)',
+                    issuingOffice: 'KBUR',
+                    issuedTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + 'Z',
+                    cities: 'Chittenden, Addison, Rutland Counties, VT',
+                    id: `test-svr-tstm-continuation-${Date.now()}`
+                };
+                displayWarning(testWarning);
+            };
+
+            window.testRestoreRadar = function() {
+                restoreOriginalRadar();
+                console.log('Radar restored to original KCXX');
+            };
+
+            window.clearStuckWarning = function() {
+                activeWarningId = null;
+                if (warningTimeout) clearTimeout(warningTimeout);
+                if (tornadoEmergencyTimeout) clearTimeout(tornadoEmergencyTimeout);
+                closeWarning();
+                restoreOriginalRadar();
+                console.log('Warning system reset');
+            };
+
+            window.checkLiveAPI = function() {
+                console.log('%c=== Checking Live NWS API ===', 'color: #00ff00; font-weight: bold');
+                const nwsUrl = 'https://api.weather.gov/alerts/active';
+                const encodedUrl = encodeURIComponent(nwsUrl);
+                const apiUrl = `https://corsproxy.io/?${encodedUrl}`;
+                
+                fetch(apiUrl)
+                    .then(r => r.json())
+                    .then(data => {
+                        console.log('Live API Response:', data);
+                        console.log('Number of warnings:', data.features ? data.features.length : 0);
+                        if (data.features && data.features.length > 0) {
+                            console.log('First warning:', data.features[0].properties.event);
+                        }
+                    })
+                    .catch(e => console.error('API Error:', e));
+            };
+
+            window.showWarningTest = function() {
+                console.clear();
+                console.log('%c╔════════════════════════════════════════════════════════════╗', 'color: #00A5B3; font-size: 14px');
+                console.log('%c║         VTSU Lyndon Weather Center - Warning System        ║', 'color: #00A5B3; font-size: 14px');
+                console.log('%c╚════════════════════════════════════════════════════════════╝', 'color: #00A5B3; font-size: 14px');
+                console.log('');
+                console.log('%c=== TEST FUNCTIONS ===', 'color: #ffff00; font-weight: bold');
+                console.log('%ctestTornadoEmergency(office, cities)', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a Tornado Emergency alert');
+                console.log('%ctestLocalTornadoWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a local Tornado Warning (St Johnsbury area)');
+                console.log('%ctestLocalSevereWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Display a local Severe Thunderstorm Warning');
+                console.log('%ctestTornadoWarning()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Display a Tornado Warning');
+                console.log('%ctestSevereThunderstorm()', 'color: #ffff00; font-weight: bold');
+                console.log('  → Display a Severe Thunderstorm Warning');
+                console.log('%ctestContinuation()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Display a Tornado Warning continuation');
+                console.log('%ctestSevereThunderstormContinuation()', 'color: #ffff00; font-weight: bold');
+                console.log('  → Display a Severe Thunderstorm Warning continuation');
+                console.log('');
+                console.log('%c=== WARNING MANAGEMENT ===', 'color: #ffd500; font-weight: bold');
+                console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Clear any stuck warning and reset system state');
+                console.log('%ctestRestoreRadar()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Restores radar to original KCXX');
+                console.log('');
+                console.log('%c=== DEBUGGING UTILITIES ===', 'color: #ffd500; font-weight: bold');
+                console.log('%ccheckLiveAPI()', 'color: #00ff00; font-weight: bold');
+                console.log('  → Check what warnings the NWS API is currently sending');
+                console.log('%cclearStuckWarning()', 'color: #ff6b6b; font-weight: bold');
+                console.log('  → Clear any stuck warning and reset system state');
+                console.log('');
+                console.log('%c=== LOCAL AREA TRIGGER KEYWORDS ===', 'color: #ffff00; font-size: 12px');
+                console.log('Warning will show "SEEK SHELTER NOW" if it includes: St Johnsbury, Lyndonville, or Caledonia (VT)');
+                console.log('');
+                console.log('%c=== NWS OFFICE CODES ===', 'color: #ff6b6b; font-size: 12px');
+                console.log('KOUN (Oklahoma), KILX (Illinois), KPBZ (Pennsylvania), KLMK (Kentucky), KTLX (Oklahoma), KVTX (Texas), KMEG (Tennessee)');
+            };
+
+            // Auto-show test commands on page load
+            console.log('%cWARNING SYSTEM LOADED v2.1 (displayWarning exposed) - Type: showWarningTest()', 'color: #00A5B3; font-weight: bold; font-size: 12px');
+            console.log('%c[SUCCESS] All test functions ready:', 'color: #00ff00; font-weight: bold', ['testTornadoEmergency', 'testLocalTornadoWarning', 'testLocalSevereWarning', 'testTornadoWarning', 'testSevereThunderstorm', 'testContinuation', 'testSevereThunderstormContinuation', 'testRestoreRadar', 'clearStuckWarning', 'checkLiveAPI', 'showWarningTest'].join(', '));
+        })();
+        (function() {
+            const dropdowns = Array.from(document.querySelectorAll('.left-nav .dropdown'));
+            if (!dropdowns.length) return;
+
+            function closeAll() {
+                dropdowns.forEach(d => {
+                    d.classList.remove('open');
+                    const b = d.querySelector('.dropdown-btn');
+                    if (b) b.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            dropdowns.forEach(dropdown => {
+                const btn = dropdown.querySelector('.dropdown-btn');
+                if (!btn) return;
+
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = dropdown.classList.contains('open');
+                    closeAll();
+                    if (!isOpen) {
+                        dropdown.classList.add('open');
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+
+            // Close when clicking outside any dropdown
+            document.addEventListener('click', function(e) {
+                if (!dropdowns.some(d => d.contains(e.target))) closeAll();
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeAll();
+            });
+        })();
+
+        // Auto-fetch Synoptic weather data on page load/refresh
+        (function() {
+            // Function to fetch weather and update lyndon-weather element
+            function updateWeatherOnPageLoad() {
+                const weatherDiv = document.getElementById('lyndon-weather');
+                // Only fetch if the weather element exists
+                if (weatherDiv) {
+                    console.log('[Page Load] Fetching Synoptic weather data...');
+                    // Call the fetchWeather function which is already defined in the Mesonet Widget
+                    if (typeof window.fetchWeather === 'function') {
+                        window.fetchWeather();
+                    }
+                }
+            }
+
+            // Wait for DOM to be fully loaded before attempting to fetch
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateWeatherOnPageLoad);
+            } else {
+                // DOM is already loaded
+                updateWeatherOnPageLoad();
+            }
+
+            // Also update weather when user refreshes the page
+            window.addEventListener('beforeunload', function() {
+                console.log('[Page Refresh] Synoptic API ready for next page load');
+            });
+        })();
+    </script>
+</body>
+</html>

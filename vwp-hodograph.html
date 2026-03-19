@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiosonde Soundings | VTSU Weather Center</title>
+    <style>
+        :root {
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 165, 179, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--vtsu-turquoise);
+            min-width: 120px;
+        }
+
+        select, button {
+            background: var(--clock-bg);
+            color: var(--white);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: var(--vtsu-turquoise);
+        }
+
+        button {
+            background: var(--vtsu-turquoise);
+            color: var(--dark-gray);
+            font-weight: 600;
+            border: none;
+        }
+
+        button:hover {
+            background: var(--vtsu-red);
+        }
+
+        .data-display {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 165, 179, 0.3);
+            border-radius: 8px;
+            padding: 2rem;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--vtsu-turquoise);
+            padding: 3rem;
+        }
+
+        .error {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--vtsu-red);
+            padding: 2rem;
+        }
+
+        .profile-header {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--vtsu-turquoise);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .profile-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: rgba(0, 165, 179, 0.1);
+            border-left: 3px solid var(--vtsu-turquoise);
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--white);
+        }
+
+        .wind-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .wind-table th {
+            background: rgba(0, 165, 179, 0.2);
+            color: var(--vtsu-turquoise);
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid var(--vtsu-turquoise);
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+
+        .wind-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .wind-table tr:hover {
+            background: rgba(0, 165, 179, 0.05);
+        }
+
+        .update-time {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
+        .skewt-container {
+            margin: 2rem auto;
+            max-width: 1300px;
+            text-align: center;
+        }
+
+        #skewt-canvas, #hodograph-canvas {
+            background: #000000;
+            border: 2px solid var(--vtsu-turquoise);
+            border-radius: 8px;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .toggle-view {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .view-btn {
+            background: var(--clock-bg);
+            color: var(--white);
+            border: 2px solid var(--vtsu-turquoise);
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: var(--vtsu-turquoise);
+            color: var(--dark-gray);
+        }
+
+        .view-btn:hover {
+            border-color: var(--vtsu-red);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .control-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .control-group label {
+                min-width: auto;
+            }
+
+            .control-group button {
+                width: 100%;
+            }
+
+            .profile-info {
+                grid-template-columns: 1fr;
+            }
+
+            .wind-table {
+                font-size: 0.7rem;
+            }
+
+            .wind-table th, .wind-table td {
+                padding: 6px 4px;
+            }
+
+            .data-display {
+                padding: 1rem;
+            }
+
+            #skewt-canvas {
+                width: 100%;
+            }
+
+            .toggle-view {
+                flex-direction: column;
+            }
+
+            .view-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
+        <div class="nav-title">Radiosonde Soundings (Upper Air)</div>
+    </nav>
+
+    <div class="container">
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="stationSelect">Select Station:</label>
+                <select id="stationSelect">
+                    <option value="">Select a station...</option>
+                </select>
+                <button onclick="loadSoundingData()">Load Sounding</button>
+                <button onclick="window.open('https://www.spc.noaa.gov/exper/soundings/', '_blank')">SPC Soundings →</button>
+            </div>
+            <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-top: 0.5rem;">
+                Select any station and click "Load Sounding" to fetch data from the past 48 hours
+            </div>
+        </div>
+
+        <div class="data-display" id="dataDisplay">
+            <div class="loading">Select a station from the dropdown above and click "Load Sounding" to view radiosonde data</div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let availableStations = [];
+
+        // US radiosonde stations (ICAO codes for SPC)
+        const allStations = {
+            'KALB': 'Albany, NY',
+            'KGYX': 'Gray, ME',
+            'KOKX': 'Upton, NY',
+            'KBUF': 'Buffalo, NY',
+            'KIAD': 'Sterling, VA',
+            'KILN': 'Wilmington, OH',
+            'KPIT': 'Pittsburgh, PA',
+            'KGSO': 'Greensboro, NC',
+            'KMPX': 'Minneapolis, MN',
+            'KOAX': 'Omaha, NE',
+            'KBMX': 'Birmingham, AL',
+            'KMHX': 'Morehead City, NC',
+            'KJAX': 'Jacksonville, FL',
+            'KMFL': 'Miami, FL',
+            'KTBW': 'Tampa Bay (Ruskin), FL',
+            'KLCH': 'Lake Charles, LA',
+            'KOUN': 'Norman, OK',
+            'KFWD': 'Fort Worth, TX',
+            'KSLC': 'Salt Lake City, UT',
+            'KREV': 'Reno, NV',
+            'KUIL': 'Quillayute, WA',
+            'KBOI': 'Boise, ID',
+            'KBIS': 'Bismarck, ND',
+            'KDDC': 'Dodge City, KS',
+            'KJAN': 'Jackson, MS',
+            'KABQ': 'Albuquerque, NM',
+            'KTUS': 'Tucson, AZ',
+            'KDTX': 'Detroit, MI',
+            'KAPX': 'Gaylord, MI',
+            'KGRB': 'Green Bay, WI',
+            'KABR': 'Aberdeen, SD',
+            'KRIW': 'Riverton, WY',
+            'KCAR': 'Caribou, ME',
+            'KGGW': 'Glasgow, MT',
+            'KTFX': 'Great Falls, MT',
+            'KOTX': 'Spokane, WA',
+            'KPHX': 'Phoenix, AZ',
+            'KUNR': 'Rapid City, SD',
+            'KTOP': 'Topeka, KS',
+            'KLBF': 'North Platte, NE',
+            'KWAL': 'Wallops Island, VA',
+            'KBNA': 'Nashville, TN',
+            'KLZK': 'Little Rock, AR',
+            'KSHV': 'Shreveport, LA',
+            'KCRP': 'Corpus Christi, TX',
+            'KMAF': 'Midland, TX',
+            'KAMA': 'Amarillo, TX'
+        };
+
+        function loadAvailableStations() {
+            const select = document.getElementById('stationSelect');
+            
+            // Sort stations alphabetically by name
+            const stationEntries = Object.entries(allStations).sort((a, b) => a[1].localeCompare(b[1]));
+            
+            // Clear and populate dropdown with all stations
+            select.innerHTML = '<option value="">Select a station...</option>';
+            
+            stationEntries.forEach(([wmoId, name]) => {
+                const option = document.createElement('option');
+                option.value = wmoId;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadSoundingData() {
+            const stationSelect = document.getElementById('stationSelect');
+            const stationCode = stationSelect.value;
+            const display = document.getElementById('dataDisplay');
+
+            if (!stationCode) {
+                display.innerHTML = '<div class="error">Please select a station first.</div>';
+                return;
+            }
+
+            display.innerHTML = '<div class="loading">Loading sounding data from SPC...</div>';
+
+            try {
+                const now = new Date();
+                const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+                
+                // Try to find sounding data, checking most recent observation times
+                let soundingText = null;
+                let foundDate = null;
+                
+                // Check current time rounded to nearest 00Z or 12Z, then go back in time
+                const currentHour = utcNow.getUTCHours();
+                let checkDate = new Date(utcNow);
+                
+                // Round to nearest 00Z or 12Z
+                if (currentHour >= 12) {
+                    checkDate.setUTCHours(12, 0, 0, 0);
+                } else {
+                    checkDate.setUTCHours(0, 0, 0, 0);
+                }
+                
+                // Try up to last 72 hours (6 observation times)
+                for (let attempt = 0; attempt < 6; attempt++) {
+                    const yy = String(checkDate.getUTCFullYear()).slice(-2);
+                    const mm = String(checkDate.getUTCMonth() + 1).padStart(2, '0');
+                    const dd = String(checkDate.getUTCDate()).padStart(2, '0');
+                    const hh = String(checkDate.getUTCHours()).padStart(2, '0');
+                    
+                    // Remove 'K' prefix from ICAO code for SPC URL
+                    const spcStationCode = stationCode.startsWith('K') ? stationCode.substring(1) : stationCode;
+                    const spcUrl = `https://www.spc.noaa.gov/exper/soundings/${yy}${mm}${dd}${hh}_OBS/${spcStationCode}.txt`;
+                    
+                    console.log(`Attempt ${attempt + 1}: Trying ${spcUrl}`);
+                    
+                    try {
+                        const corsProxy = 'https://corsproxy.io/?';
+                        const apiUrl = corsProxy + encodeURIComponent(spcUrl);
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        
+                        const response = await fetch(apiUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        if (response.ok) {
+                            const text = await response.text();
+                            console.log(`Response received, length: ${text.length} bytes`);
+                            console.log(`First 200 chars: ${text.substring(0, 200)}`);
+                            if (text && !text.includes('404') && text.length > 100) {
+                                soundingText = text;
+                                foundDate = new Date(checkDate);
+                                console.log(`Success! Found data for ${foundDate.toISOString()}`);
+                                break;
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Attempt ${attempt + 1} failed:`, error.message);
+                        // Continue to next time
+                    }
+                    
+                    // Go back 12 hours
+                    checkDate.setUTCHours(checkDate.getUTCHours() - 12);
+                }
+
+                if (!soundingText) {
+                    throw new Error('No sounding data available for the past 72 hours');
+                }
+
+                currentData = soundingText;
+                displaySoundingData(soundingText, stationCode, foundDate);
+
+            } catch (error) {
+                console.error('Error loading sounding data:', error);
+                display.innerHTML = `<div class="error">Error loading sounding data: ${error.message}<br><br>Try visiting the <a href="https://www.spc.noaa.gov/exper/soundings/" target="_blank" style="color: var(--vtsu-turquoise);">SPC soundings page</a> directly.</div>`;
+            }
+        }
+
+        let soundingData = null;
+
+        function parseSoundingData(text) {
+            const lines = text.split('\n');
+            const data = [];
+            
+            // SPC format: data lines are reversed (stratosphere first), need to reverse
+            const reversedLines = [];
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i];
+                if (line.length < 60) continue;
+                
+                // Skip header lines
+                if (line.startsWith('#') || line.startsWith('%')) continue;
+                
+                try {
+                    // Extract columns matching Java SpcExper.java format EXACTLY
+                    // substring(0,8) = pressure, (9,19) = height, (20,30) = temp, (31,41) = dewpt, (42,52) = dir, (53,63) = speed
+                    const presStr = line.substring(0, 8).trim();
+                    const hghtStr = line.substring(9, 19).trim();
+                    const tempStr = line.substring(20, 30).trim();
+                    const dwptStr = line.substring(31, 41).trim();
+                    const drctStr = line.substring(42, 52).trim();
+                    const wspdStr = line.substring(53, 63).trim();
+                    
+                    if (!presStr || !hghtStr) continue;
+                    
+                    // Parse values - Java code just does Double.parseDouble()
+                    let pres = parseFloat(presStr);
+                    let hght = parseFloat(hghtStr);
+                    let temp = parseFloat(tempStr);
+                    let dwpt = parseFloat(dwptStr);
+                    let drct = parseFloat(drctStr);
+                    let wspd = parseFloat(wspdStr);
+                    
+                    if (isNaN(pres) || isNaN(hght)) continue;
+                    
+                    // Apply conversions EXACTLY as Java does
+                    pres = pres * 100; // mb to Pa
+                    // hght stays as-is (meters)
+                    
+                    // Temperature: Java does temp + 273.15, we need Celsius so subtract back
+                    if (!isNaN(temp) && temp > -9900) {
+                        // temp is in Celsius, no conversion needed for display
+                    } else {
+                        temp = null;
+                    }
+                    
+                    // Dewpoint: Java uses "relativeHumidityStr" column but treats as dewpoint temp
+                    if (!isNaN(dwpt) && dwpt > -9900) {
+                        // dwpt is in Celsius, no conversion needed for display
+                    } else {
+                        dwpt = null;
+                    }
+                    
+                    // Wind direction: add 180
+                    if (!isNaN(drct) && drct > -180) {
+                        drct = (drct + 180) % 360;
+                    } else {
+                        drct = null;
+                    }
+                    
+                    // Wind speed: multiply by 0.5144444 (knots to m/s), but we display knots
+                    if (!isNaN(wspd) && wspd > -10) {
+                        // wspd is already in knots, keep as-is
+                    } else {
+                        wspd = null;
+                    }
+                    
+                    data.push({
+                        pres: pres / 100, // Pa to hPa for display
+                        hght: hght,
+                        temp: temp,
+                        dwpt: dwpt,
+                        drct: drct,
+                        sknt: wspd
+                    });
+                } catch (e) {
+                    console.log('Parse error:', e, 'Line:', line);
+                    continue;
+                }
+            }
+            
+            console.log(`Parsed ${data.length} data points`);
+            if (data.length > 0) {
+                console.log('Sample data point:', data[0]);
+            }
+            return data;
+        }
+
+        function displaySoundingData(text, stationCode, launchDate) {
+            const display = document.getElementById('dataDisplay');
+            const stationName = allStations[stationCode];
+            const launchTime = launchDate.toISOString().replace('T', ' ').substring(0, 19) + 'Z';
+            
+            soundingData = parseSoundingData(text);
+            
+            let html = `
+                <div class="profile-header">${stationName} - ${launchTime}</div>
+                
+                <div class="toggle-view">
+                    <button class="view-btn active" onclick="showSkewT()">Skew-T Diagram</button>
+                    <button class="view-btn" onclick="showTable()">Data Table</button>
+                </div>
+                
+                <div id="skew-t-view" class="skewt-container">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                        <div>
+                            <canvas id="skewt-canvas" width="800" height="800"></canvas>
+                        </div>
+                        <div>
+                            <canvas id="hodograph-canvas" width="400" height="400"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="table-view" style="display: none;">
+                    <table class="wind-table">
+                        <thead>
+                            <tr>
+                                <th>PRES<br>(hPa)</th>
+                                <th>HGHT<br>(m)</th>
+                                <th>TEMP<br>(°C)</th>
+                                <th>DWPT<br>(°C)</th>
+                                <th>DRCT<br>(deg)</th>
+                                <th>SKNT<br>(knot)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            soundingData.forEach(row => {
+                html += `<tr>
+                    <td>${row.pres !== null ? row.pres.toFixed(1) : ''}</td>
+                    <td>${row.hght !== null ? row.hght : ''}</td>
+                    <td>${row.temp !== null ? row.temp.toFixed(1) : ''}</td>
+                    <td>${row.dwpt !== null ? row.dwpt.toFixed(1) : ''}</td>
+                    <td>${row.drct !== null ? row.drct : ''}</td>
+                    <td>${row.sknt !== null ? row.sknt.toFixed(1) : ''}</td>
+                </tr>`;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="update-time">
+                    Data provided by NOAA Storm Prediction Center • 
+                    <a href="https://www.spc.noaa.gov/exper/soundings/" target="_blank" style="color: var(--vtsu-turquoise);">View on SPC</a>
+                </div>
+            `;
+
+            display.innerHTML = html;
+            
+            // Draw visualizations after DOM update
+            setTimeout(() => {
+                drawSkewT(soundingData, stationName, launchTime);
+                drawHodograph(soundingData, stationName, launchTime);
+            }, 100);
+        }
+
+        function showSkewT() {
+            document.getElementById('skew-t-view').style.display = 'block';
+            document.getElementById('table-view').style.display = 'none';
+            document.querySelectorAll('.view-btn')[0].classList.add('active');
+            document.querySelectorAll('.view-btn')[1].classList.remove('active');
+            
+            // Redraw in case canvas elements were recreated
+            if (soundingData) {
+                const stationCode = document.getElementById('station').value;
+                const stationName = allStations[stationCode];
+                setTimeout(() => {
+                    drawSkewT(soundingData, stationName, '');
+                    drawHodograph(soundingData, stationName, '');
+                }, 50);
+            }
+        }
+
+        function showTable() {
+            document.getElementById('skew-t-view').style.display = 'none';
+            document.getElementById('table-view').style.display = 'block';
+            document.querySelectorAll('.view-btn')[0].classList.remove('active');
+            document.querySelectorAll('.view-btn')[1].classList.add('active');
+        }
+
+        function drawSkewT(data, stationName, launchTime) {
+            const canvas = document.getElementById('skewt-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = 800;
+            const height = 800;
+            
+            // Constants matching Java implementation
+            const PRESSURE_MINIMUM = 10000;  // 100 hPa in Pa
+            const PRESSURE_MAXIMUM = 110000; // 1100 hPa in Pa
+            const TEMP_SFC_MINIMUM = 223.15; // -50°C in K
+            const TEMP_SFC_MAXIMUM = 323.15; // 50°C in K
+            const SKEW_AMOUNT = 0.75;
+            
+            // Helper function for linear scale  
+            function linScale(x1, x2, y1, y2, x) {
+                return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+            }
+            
+            // Clear canvas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.lineWidth = 1;
+            
+            // Draw dry adiabats
+            ctx.strokeStyle = 'rgb(64, 0, 0)';
+            for (let temp = 223.15; temp <= 423.15; temp += 10) {
+                ctx.beginPath();
+                let parcelTemp = temp;
+                let parcelPres = 100000;
+                
+                while (parcelPres > PRESSURE_MINIMUM) {
+                    const parcelPresNew = parcelPres - 10;
+                    const parcelTempNew = parcelTemp * Math.pow(parcelPresNew / parcelPres, 287.04 / 1005.0);
+                    
+                    const y1 = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(parcelPres));
+                    const y2 = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(parcelPresNew));
+                    
+                    const skew1 = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y1);
+                    const skew2 = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y2);
+                    
+                    const x1 = linScale(223.15, 323.15, 0, 800, parcelTemp);
+                    const x2 = linScale(223.15, 323.15, 0, 800, parcelTempNew);
+                    
+                    if (ctx.getLineDash().length === 0) ctx.moveTo(x1 + skew1, y1);
+                    ctx.lineTo(x2 + skew2, y2);
+                    
+                    parcelTemp = parcelTempNew;
+                    parcelPres = parcelPresNew;
+                }
+                ctx.stroke();
+            }
+            
+            // Draw moist adiabats (simplified)
+            ctx.strokeStyle = 'rgb(0, 64, 0)';
+            for (let temp = 263.15; temp <= 313.15; temp += 5) {
+                ctx.beginPath();
+                let parcelTemp = temp;
+                let parcelPres = 100000;
+                
+                while (parcelPres > 2 * PRESSURE_MINIMUM) {
+                    // Simplified moist adiabatic lapse rate (6.5 K/km average)
+                    const heightChange = 20; // meters
+                    const lapseRate = 0.0065; // K/m
+                    const parcelTempNew = parcelTemp - (lapseRate * heightChange);
+                    
+                    // Hypsometric equation simplified
+                    const parcelPresNew = parcelPres * Math.exp(-9.8 * heightChange / (287.04 * parcelTemp));
+                    
+                    const y1 = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(parcelPres));
+                    const y2 = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(parcelPresNew));
+                    
+                    const skew1 = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y1);
+                    const skew2 = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y2);
+                    
+                    const x1 = linScale(223.15, 323.15, 0, 800, parcelTemp);
+                    const x2 = linScale(223.15, 323.15, 0, 800, parcelTempNew);
+                    
+                    if (ctx.getLineDash().length === 0) ctx.moveTo(x1 + skew1, y1);
+                    ctx.lineTo(x2 + skew2, y2);
+                    
+                    parcelTemp = parcelTempNew;
+                    parcelPres = parcelPresNew;
+                }
+                ctx.stroke();
+            }
+            
+            ctx.lineWidth = 1;
+            
+            // Draw pressure lines
+            ctx.strokeStyle = 'rgb(64, 64, 64)';
+            for (let p = PRESSURE_MINIMUM; p < PRESSURE_MAXIMUM; p += Math.pow(10, Math.floor(Math.log10(p)))) {
+                const y = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(p));
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(800, y);
+                ctx.stroke();
+                
+                // Pressure labels on left (Y-axis)
+                if (p % 10000 === 0 || p === 50000 || p === 70000 || p === 85000) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.fillText((p / 100).toFixed(0) + ' mb', 35, y + 4);
+                }
+            }
+            
+            // Add temperature scale on right side (Y-axis)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            const tempLabels = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50];
+            tempLabels.forEach(tempC => {
+                const tempK = tempC + 273.15;
+                // Draw at 500 mb level for reference
+                const refPressure = 50000;
+                const y = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(refPressure));
+                const skew = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y);
+                const x = linScale(223.15, 323.15, 0, 800, tempK);
+                
+                if (x + skew >= 0 && x + skew <= 800) {
+                    // Draw small tick mark
+                    ctx.strokeStyle = '#888888';
+                    ctx.beginPath();
+                    ctx.moveTo(x + skew, y - 3);
+                    ctx.lineTo(x + skew, y + 3);
+                    ctx.stroke();
+                    
+                    if (tempC % 20 === 0) {
+                        ctx.fillText(tempC + '°', x + skew - 10, y - 8);
+                    }
+                }
+            });
+            
+            // Draw temperature lines
+            ctx.strokeStyle = 'rgb(64, 64, 64)';
+            for (let t = -50; t <= 50; t += 10) {
+                const tempK = t + 273.15;
+                const x = linScale(223.15, 323.15, 0, 800, tempK);
+                ctx.beginPath();
+                ctx.moveTo(x + (800 * SKEW_AMOUNT), 0);
+                ctx.lineTo(x, 800);
+                ctx.stroke();
+                
+                // Label at top
+                if (t % 20 === 0) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(t + '°C', x + (800 * SKEW_AMOUNT), 15);
+                }
+            }
+            
+            // Draw 0°C line in light blue
+            ctx.strokeStyle = 'rgb(127, 127, 255)';
+            ctx.lineWidth = 2;
+            const zeroTempK = 273.15;
+            const xZero = linScale(223.15, 323.15, 0, 800, zeroTempK);
+            ctx.beginPath();
+            ctx.moveTo(xZero + (800 * SKEW_AMOUNT), 0);
+            ctx.lineTo(xZero, 800);
+            ctx.stroke();
+            
+            ctx.lineWidth = 2;
+            
+            // Draw temperature profile
+            ctx.strokeStyle = 'rgb(255, 0, 0)';
+            ctx.beginPath();
+            let first = true;
+            let tempCount = 0;
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].temp !== null && data[i].pres) {
+                    const tempK = data[i].temp + 273.15;
+                    const presPA = data[i].pres * 100;
+                    
+                    if (presPA >= PRESSURE_MINIMUM && presPA <= PRESSURE_MAXIMUM) {
+                        const y = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(presPA));
+                        const skew = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y);
+                        const x = linScale(223.15, 323.15, 0, 800, tempK);
+                        
+                        if (first) {
+                            ctx.moveTo(x + skew, y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(x + skew, y);
+                        }
+                        tempCount++;
+                    }
+                }
+            }
+            ctx.stroke();
+            console.log(`Drew temperature profile with ${tempCount} points`);
+            
+            // Draw dewpoint profile
+            ctx.strokeStyle = 'rgb(0, 255, 0)';
+            ctx.beginPath();
+            first = true;
+            let dwptCount = 0;
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].dwpt !== null && data[i].pres) {
+                    const tempK = data[i].dwpt + 273.15;
+                    const presPA = data[i].pres * 100;
+                    
+                    if (presPA >= PRESSURE_MINIMUM && presPA <= PRESSURE_MAXIMUM) {
+                        const y = linScale(Math.log(PRESSURE_MINIMUM), Math.log(PRESSURE_MAXIMUM), 0, 800, Math.log(presPA));
+                        const skew = linScale(0, 800, 800 * SKEW_AMOUNT, 0, y);
+                        const x = linScale(223.15, 323.15, 0, 800, tempK);
+                        
+                        if (first) {
+                            ctx.moveTo(x + skew, y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(x + skew, y);
+                        }
+                        dwptCount++;
+                    }
+                }
+            }
+            ctx.stroke();
+            console.log(`Drew dewpoint profile with ${dwptCount} points`);
+            
+            // Title
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${stationName}`, 40, height - 10);
+        }
+        
+        function drawHodograph(data, stationName, launchTime) {
+            const canvas = document.getElementById('hodograph-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = 400;
+            const height = 400;
+            
+            // Helper function
+            function linScale(x1, x2, y1, y2, x) {
+                return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+            }
+            
+            // Calculate u and v wind components
+            const winds = [];
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].drct !== null && data[i].sknt !== null && data[i].pres && data[i].hght !== null) {
+                    const dirRad = data[i].drct * Math.PI / 180;
+                    const speedMS = data[i].sknt * 0.514444; // knots to m/s
+                    
+                    winds.push({
+                        u: -speedMS * Math.sin(dirRad),
+                        v: -speedMS * Math.cos(dirRad),
+                        height: data[i].hght,
+                        pressure: data[i].pres
+                    });
+                }
+            }
+            
+            if (winds.length === 0) {
+                console.log('No wind data available for hodograph');
+                return;
+            }
+            
+            // Get surface height for AGL calculations
+            const surfaceHeight = winds[winds.length - 1]?.height || 0;
+            
+            console.log(`Hodograph: ${winds.length} wind levels, surface height: ${surfaceHeight}m`);
+            
+            // Calculate maximum radius (round up to nearest 5 m/s, convert to knots)
+            let maxRadius = 0;
+            for (let i = 0; i < winds.length; i++) {
+                const windSpeed = Math.hypot(winds[i].u, winds[i].v);
+                maxRadius = Math.max(maxRadius, windSpeed);
+            }
+            maxRadius = Math.ceil(maxRadius / 5.144444) * 5.144444; // Round up to nearest 5 knots in m/s
+            if (maxRadius < 10) maxRadius = 10.288888; // At least 20 knots
+            
+            // Clear canvas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw rings
+            ctx.lineWidth = 1;
+            let ringCount = 0;
+            for (let radius = 0; radius <= maxRadius; radius += 5.144444) {
+                if (ringCount % 5 === 0) {
+                    ctx.strokeStyle = 'rgb(64, 64, 96)';
+                } else {
+                    ctx.strokeStyle = 'rgb(64, 64, 64)';
+                }
+                
+                const r = linScale(0, maxRadius, 0, 200, radius);
+                ctx.beginPath();
+                ctx.arc(200, 200, r, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                ringCount++;
+            }
+            
+            // Draw crosshair
+            ctx.strokeStyle = 'rgb(128, 128, 128)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 200);
+            ctx.lineTo(400, 200);
+            ctx.moveTo(200, 0);
+            ctx.lineTo(200, 400);
+            ctx.stroke();
+            
+            // Draw wind trace with height-based colors
+            ctx.lineWidth = 2;
+            for (let i = 0; i < winds.length - 1; i++) {
+                const heightAGL1 = winds[i].height - surfaceHeight;
+                const heightAGL2 = winds[i + 1].height - surfaceHeight;
+                
+                const x1 = linScale(-maxRadius, maxRadius, 0, 400, winds[i].u);
+                const y1 = linScale(-maxRadius, maxRadius, 0, 400, -winds[i].v);
+                const x2 = linScale(-maxRadius, maxRadius, 0, 400, winds[i + 1].u);
+                const y2 = linScale(-maxRadius, maxRadius, 0, 400, -winds[i + 1].v);
+                
+                // Color based on height AGL matching Java implementation
+                if (heightAGL2 < 500) {
+                    ctx.strokeStyle = 'rgb(255, 127, 255)'; // 0-500m: magenta
+                } else if (heightAGL2 < 1000) {
+                    ctx.strokeStyle = 'rgb(255, 0, 0)'; // 500-1000m: red
+                } else if (heightAGL2 < 3000) {
+                    ctx.strokeStyle = 'rgb(255, 127, 0)'; // 1-3km: orange
+                } else if (heightAGL2 < 6000) {
+                    ctx.strokeStyle = 'rgb(255, 255, 127)'; // 3-6km: yellow
+                } else if (heightAGL2 < 9000) {
+                    ctx.strokeStyle = 'rgb(0, 192, 0)'; // 6-9km: green
+                } else if (heightAGL2 < 12000) {
+                    ctx.strokeStyle = 'rgb(128, 192, 255)'; // 9-12km: light blue
+                } else {
+                    ctx.strokeStyle = 'rgb(50, 25, 75)'; // >12km: purple
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Draw height markers at standard levels (0.5, 1, 3, 6, 9, 12 km)
+            ctx.fillStyle = '#000000';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const heightMarkers = [
+                { height: 500, label: '.5' },
+                { height: 1000, label: '1' },
+                { height: 3000, label: '3' },
+                { height: 6000, label: '6' },
+                { height: 9000, label: '9' },
+                { height: 12000, label: '12' }
+            ];
+            
+            heightMarkers.forEach(marker => {
+                const targetHeight = surfaceHeight + marker.height;
+                
+                // Find winds at this height by interpolation
+                let markerU = null;
+                let markerV = null;
+                
+                // Search through winds array (which goes surface to top)
+                for (let i = winds.length - 1; i > 0; i--) {
+                    // winds[i] is lower (closer to surface), winds[i-1] is higher
+                    if (winds[i].height <= targetHeight && winds[i - 1].height >= targetHeight) {
+                        const frac = (targetHeight - winds[i].height) / (winds[i - 1].height - winds[i].height);
+                        markerU = winds[i].u + frac * (winds[i - 1].u - winds[i].u);
+                        markerV = winds[i].v + frac * (winds[i - 1].v - winds[i].v);
+                        break;
+                    }
+                }
+                
+                if (markerU !== null && markerV !== null) {
+                    const markerX = linScale(-maxRadius, maxRadius, 0, 400, markerU);
+                    const markerY = linScale(-maxRadius, maxRadius, 0, 400, -markerV);
+                    
+                    // Draw filled circle with outline
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(markerX, markerY, 10, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Draw label
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillText(marker.label, markerX, markerY);
+                }
+            });
+            
+            // Draw labels for rings
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ringCount = 0;
+            for (let radius = 0; radius <= maxRadius; radius += 5.144444) {
+                if (ringCount % 5 === 0 && ringCount > 0) {
+                    const r = linScale(0, maxRadius, 0, 200, radius);
+                    const kts = Math.round(radius / 0.514444);
+                    ctx.fillText(kts + ' kt', 200, 200 - r - 5);
+                }
+                ringCount++;
+            }
+            
+            // Title
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Hodograph', 10, 20);
+            
+            // Legend
+            ctx.font = '10px Arial';
+            const legendX = 10;
+            let legendY = 380;
+            const legendItems = [
+                { color: 'rgb(255, 127, 255)', label: '0-500m' },
+                { color: 'rgb(255, 0, 0)', label: '500m-1km' },
+                { color: 'rgb(255, 127, 0)', label: '1-3km' },
+                { color: 'rgb(255, 255, 127)', label: '3-6km' },
+                { color: 'rgb(0, 192, 0)', label: '6-9km' },
+                { color: 'rgb(128, 192, 255)', label: '9-12km' }
+            ];
+            
+            ctx.textAlign = 'left';
+            legendItems.forEach((item, idx) => {
+                ctx.fillStyle = item.color;
+                ctx.fillRect(legendX, legendY + idx * 12, 15, 3);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(item.label, legendX + 20, legendY + idx * 12 + 3);
+            });
+        }
+        
+        function drawWindBarb(ctx, x, y, direction, speed) {
+            if (!direction || !speed) return;
+            
+            const barbLength = 15;
+            const rad = (direction + 180) * Math.PI / 180; // Point where wind is coming from
+            
+            // Draw staff
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + barbLength * Math.sin(rad), y - barbLength * Math.cos(rad));
+            ctx.stroke();
+            
+            // Draw barbs for wind speed
+            const fullBarb = 10; // knots per full barb
+            const halfBarb = 5;  // knots per half barb
+            const spacing = 4;
+            
+            let remainingSpeed = speed;
+            let offset = barbLength;
+            
+            while (remainingSpeed >= halfBarb && offset > 0) {
+                const startX = x + offset * Math.sin(rad);
+                const startY = y - offset * Math.cos(rad);
+                
+                if (remainingSpeed >= fullBarb) {
+                    const endX = startX + 8 * Math.sin(rad + Math.PI / 3);
+                    const endY = startY - 8 * Math.cos(rad + Math.PI / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    remainingSpeed -= fullBarb;
+                } else {
+                    const endX = startX + 5 * Math.sin(rad + Math.PI / 3);
+                    const endY = startY - 5 * Math.cos(rad + Math.PI / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    remainingSpeed -= halfBarb;
+                }
+                
+                offset -= spacing;
+            }
+        }
+
+        // Populate dropdown on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadAvailableStations();
+        });
+    </script>
+</body>
+</html>

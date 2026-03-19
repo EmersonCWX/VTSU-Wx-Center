@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vermont State University Lyndon | Weather Center</title>
+    <style>
+        :root {
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Navigation Bar --- */
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+            padding: 0.8rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        /* --- Clock Section --- */
+        .clock-container {
+            padding-left: 0;
+            display: flex;
+            gap: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            grid-column: 2;
+            justify-self: center;
+        }
+
+        .clock-item {
+            background: var(--clock-bg);
+            padding: 5px 12px;
+            border-radius: 4px;
+            border-left: 3px solid var(--vtsu-turquoise);
+        }
+
+        .clock-label {
+            font-size: 0.6rem;
+            color: #aaa;
+            display: block;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .time-display {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--white);
+            letter-spacing: 1px;
+        }
+
+        /* --- Nav Links --- */
+        .nav-links {
+            display: flex;
+            justify-content: flex-end;
+            grid-column: 3;
+            justify-self: end;
+            margin-right: 12px;
+        }
+
+        /* --- Left Hurricanes Dropdown --- */
+        .left-nav {
+            display: flex;
+            align-items: center;
+            grid-column: 1;
+            justify-self: start;
+            padding-left: 12px;
+        }
+
+        .left-nav .dropdown + .dropdown {
+            margin-left: 12px;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-btn {
+            background: transparent;
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 8px 10px;
+            font-weight: 700;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 110%;
+            background: var(--clock-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 6px 8px;
+            min-width: 220px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+
+        .dropdown-content a {
+            display: block;
+            color: var(--white);
+            text-decoration: none;
+            padding: 8px 10px;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .dropdown-content a:hover {
+            background: rgba(0,0,0,0.2);
+            color: var(--vtsu-turquoise);
+        }
+
+        .dropdown.open .dropdown-content {
+            display: block;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+            text-transform: uppercase;
+        }
+
+        .nav-links a:hover {
+            color: var(--vtsu-turquoise);
+        }
+
+        /* --- Layout Container --- */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .splash-container {
+            text-align: center;
+            background: transparent;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: none;
+            max-width: 1100px;
+            width: 95%;
+            color: var(--white);
+        }
+
+        .logo-area h1 { 
+            margin: 0; 
+            font-size: 2.2rem; 
+            color: var(--vtsu-turquoise);
+            font-weight: 800;
+        }
+
+        .logo-area h2 { 
+            margin: 5px 0 25px 0; 
+            font-size: 1.1rem; 
+            border-bottom: 4px solid var(--vtsu-red);
+            display: inline-block;
+            padding-bottom: 5px;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        /* --- Radar Frame --- */
+        .loop-frame {
+            width: 100%;
+            background-color: transparent;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 0 auto 1rem auto;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        #radar-loop {
+            width: 800px;
+            height: 600px;
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            object-fit: fill;
+            background-color: transparent;
+            margin: 0 auto;
+            border-radius: 4px;
+        }
+
+        .loop-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #666;
+            padding: 0;
+            text-align: center;
+        }
+
+        .status-dot {
+            height: 10px; width: 10px;
+            background-color: var(--vtsu-red);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .enter-btn {
+            margin-top: 2rem;
+            display: inline-block;
+            background-color: var(--vtsu-red);
+            color: white;
+            padding: 14px 50px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 800;
+            transition: transform 0.2s;
+        }
+
+        .enter-btn:hover {
+            transform: scale(1.02);
+            background-color: #d12a45;
+        }
+
+        /* --- Footer Credit --- */
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 1rem 0;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        /* --- Responsive: Portrait / narrow mobile (e.g., 9:16 devices) --- */
+        @media (orientation: portrait) and (max-width: 900px) {
+            .top-nav {
+                grid-template-columns: 1fr;
+                grid-auto-rows: auto;
+                padding: 0.6rem 0.6rem;
+                gap: 6px;
+            }
+
+            .left-nav, .clock-container, .nav-links {
+                grid-column: auto;
+                justify-self: center;
+                align-items: center;
+            }
+
+            .left-nav {
+                padding-left: 0;
+                justify-content: center;
+            }
+
+            .clock-container {
+                justify-self: center;
+                gap: 8px;
+                padding: 0 6px;
+            }
+
+            .nav-links {
+                justify-content: center;
+                flex-wrap: wrap;
+                margin: 6px 0 0 0;
+                padding: 0 6px 6px 6px;
+            }
+
+            .nav-links a {
+                margin: 6px 8px;
+                font-size: 0.95rem;
+                padding: 6px 8px;
+                display: inline-block;
+            }
+
+            .splash-container {
+                padding: 1rem;
+                width: 98%;
+                max-width: 980px;
+            }
+
+            .logo-area h1 { font-size: 1.6rem; }
+            .logo-area h2 { font-size: 1rem; }
+
+            /* Make radar image responsive and avoid overflow on tall screens */
+            #radar-loop {
+                width: 94vw;
+                height: auto;
+                max-height: 70vh;
+                object-fit: contain;
+            }
+
+            .loop-frame { padding: 8px 0; }
+
+            .enter-btn { padding: 12px 24px; }
+
+            footer { font-size: 0.82rem; padding: 0.8rem 0; }
+
+            /* Make dropdowns easier to interact with on touch */
+            .dropdown-btn { padding: 10px 12px; }
+            .dropdown-content { min-width: 180px; left: auto; right: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="left-nav">
+            <div class="dropdown">
+                <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Hurricanes ▾</button>
+                <div class="dropdown-content" role="menu" aria-label="Hurricanes menu">
+                    <a href="https://www.aoml.noaa.gov/ftp/hrd/data/RTradar/" target="_blank" rel="noopener noreferrer">Tail Doppler Radar</a>
+                    <a href="https://ftp.nhc.noaa.gov/atcf/btk/" target="_blank" rel="noopener noreferrer">ATCF</a>
+                    <a href="https://www.nhc.noaa.gov/text/MIAREPRPD.shtml" target="_blank" rel="noopener noreferrer">TCPOD</a>
+                    <a href="https://www.star.nesdis.noaa.gov/socd/mecb/sar/sarwinds_tropical.php?year=2026" target="_blank" rel="noopener noreferrer">SAR</a>
+                    <a href="https://tropic.ssec.wisc.edu/real-time/mimtc/tc.shtml" target="_blank" rel="noopener noreferrer">Microwave</a>
+                    <a href="https://rammb.cira.colostate.edu/ramsdis/online/tropical-new.asp" target="_blank" rel="noopener noreferrer">RAMMB</a>
+                    <a href="https://cyclonicwx.com/recon/" target="_blank" rel="noopener noreferrer">Live Recon Data</a>
+                    <a href="https://tropical.atmos.colostate.edu/Realtime/index.php?loc=northatlantic" target="_blank" rel="noopener noreferrer">Seasonal ACE</a>
+                    <a href="https://manati.star.nesdis.noaa.gov/datasets/ASCATBData.php" target="_blank" rel="noopener noreferrer">ASCAT</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Severe Weather ▾</button>
+                <div class="dropdown-content" role="menu" aria-label="Severe Weather menu">
+                    <a href="https://radarhub.arrc.ou.edu/archive/raxpol/" target="_blank" rel="noopener noreferrer">RaXpol</a>
+                    <a href="http://data.nadocast.com/viewer.html" target="_blank" rel="noopener noreferrer">NadoCast</a>
+                    <a href="https://weather.rap.ucar.edu" target="_blank" rel="noopener noreferrer">Rap Realtime</a>
+                    <a href="https://svr.guru/index.php" target="_blank" rel="noopener noreferrer">DOW6/7</a>
+                    <a href="https://atlas.niu.edu/forecast/scp/" target="_blank" rel="noopener noreferrer">CSU Extended Forecast</a>
+                    <a href="https://atlas.niu.edu/forecast/scp/" target="_blank" rel="noopener noreferrer">VWP Hodographs</a>
+                    <a href="https://weather.cod.edu/textserv/warnings" target="_blank" rel="noopener noreferrer">COD Severe warnings Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="clock-container">
+            <div class="clock-item">
+                <span class="clock-label">Local (VT)</span>
+                <span id="local-clock" class="time-display">00:00:00</span>
+            </div>
+            <div class="clock-item">
+                <span class="clock-label">Zulu (UTC)</span>
+                <span id="zulu-clock" class="time-display">00:00:00</span>
+            </div>
+        </div>
+
+            <div class="nav-links">
+            <a href="#" id="btn-gfs" data-url="https://www.pivotalweather.com/model.php?m=gfs&p=prateptype_cat_ecmwf-imp&rh=2026021612&fh=12&r=us_ne&dpdt=&mc=">GFS</a>
+            <a href="#" id="btn-ecmwf" data-url="https://www.pivotalweather.com/model.php?m=ecmwf_full&p=prateptype_cat_ecmwf-imp&rh=2026021612&fh=12&r=us_ne&dpdt=&mc=">ECMWF</a>
+            <a href="#" id="btn-hrrr" data-url="https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=">HRRR</a>
+            <a href="#" id="btn-mesonet" data-url="https://atmos.northernvermont.edu/weather-data/weather-station/">VTSU Mesonet</a>
+        </div>
+        
+        <div></div>
+    </nav>
+
+    <div class="main-wrapper">
+        <div class="splash-container">
+            <div class="logo-area">
+                <h1>Vermont State University</h1>
+                <h2>Lyndon Weather Center</h2>
+            </div>
+
+            <div class="loop-frame">
+                <img id="radar-loop" src="https://radar.weather.gov/ridge/standard/KCXX_loop.gif" alt="NWS KCXX Burlington Radar Loop">
+            </div>
+
+            <div class="loop-controls">
+                <div>RADAR NWS KCXX (Burlington, VT)</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        By Emerson Charles (she/her)<3
+    </footer>
+    <footer> If you have any questions or need assistance, please contact me dxc00407@vsc.edu
+
+    <script>
+        function updateClocks() {
+            const now = new Date();
+            const localOptions = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('local-clock').textContent = now.toLocaleTimeString('en-US', localOptions);
+
+            const zHour = String(now.getUTCHours()).padStart(2, '0');
+            const zMin = String(now.getUTCMinutes()).padStart(2, '0');
+            const zSec = String(now.getUTCSeconds()).padStart(2, '0');
+            document.getElementById('zulu-clock').textContent = `${zHour}:${zMin}:${zSec}Z`;
+        }
+
+        setInterval(updateClocks, 1000);
+        updateClocks();
+
+        setInterval(() => {
+            const radarImg = document.getElementById('radar-loop');
+            const currentSrc = radarImg.src.split('?')[0];
+            radarImg.src = currentSrc + '?t=' + new Date().getTime();
+        }, 300000);
+
+        // Open GFS 15-day Precip/MSLP when GFS nav link is clicked
+        (function() {
+            const gfsBtn = document.getElementById('btn-gfs');
+            if (gfsBtn) {
+                gfsBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = gfsBtn.dataset.url || 'https://www.tropicaltidbits.com/analysis/models/?model=gfs&region=conus&pkg=mslp_pcpn';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const ecmwfBtn = document.getElementById('btn-ecmwf');
+            if (ecmwfBtn) {
+                ecmwfBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = ecmwfBtn.dataset.url || 'https://www.tropicaltidbits.com/analysis/models/?model=ecmwf&region=conus&pkg=mslp_pcpn';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const hrrrBtn = document.getElementById('btn-hrrr');
+            if (hrrrBtn) {
+                hrrrBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = hrrrBtn.dataset.url || 'https://www.pivotalweather.com/model.php?m=hrrr&p=ref1km&rh=2026021701&fh=0&r=us_ne&dpdt=&mc=';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            const mesonetBtn = document.getElementById('btn-mesonet');
+            if (mesonetBtn) {
+                mesonetBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = mesonetBtn.dataset.url || 'https://atmos.northernvermont.edu/weather-data/weather-station/';
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            }
+        })();
+
+        // Dropdown click behavior: support multiple dropdowns, toggle on click, close others
+        (function() {
+            const dropdowns = Array.from(document.querySelectorAll('.left-nav .dropdown'));
+            if (!dropdowns.length) return;
+
+            function closeAll() {
+                dropdowns.forEach(d => {
+                    d.classList.remove('open');
+                    const b = d.querySelector('.dropdown-btn');
+                    if (b) b.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            dropdowns.forEach(dropdown => {
+                const btn = dropdown.querySelector('.dropdown-btn');
+                if (!btn) return;
+
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = dropdown.classList.contains('open');
+                    closeAll();
+                    if (!isOpen) {
+                        dropdown.classList.add('open');
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+
+            // Close when clicking outside any dropdown
+            document.addEventListener('click', function(e) {
+                if (!dropdowns.some(d => d.contains(e.target))) closeAll();
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeAll();
+            });
+        })();
+    </script>
+</body>
+</html>

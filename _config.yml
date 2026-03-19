@@ -1,0 +1,17 @@
+# GitHub Pages Jekyll Configuration
+# https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll
+
+# Site Settings
+title: "VTSU Lyndon Weather Center"
+description: "Vermont State University Lyndon Weather Center - Real-time radar, forecasts, and weather data"
+url: "https://emersoncwx.github.io"
+baseurl: "/VTSU-Wx-Center"
+
+# Build Settings
+theme: null
+plugins: []
+markdown: kramdown
+exclude:
+  - README.md
+  - .gitignore
+  - LICENSE

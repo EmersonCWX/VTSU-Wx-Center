@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">      
+    <title>VTSU Mesonet Full Dataset | Weather Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        /* ============================================================
+           CSS VARIABLES - Design System & Typography
+           ============================================================ */
+        :root {
+            /* Brand Colors */
+            --vtsu-turquoise: #00A5B3;
+            --vtsu-red: #EC3754;
+            --dark-gray: #1a1a1a;
+            --white: #ffffff;
+            --clock-bg: #2a2a2a;
+
+            /* Chart Colors */
+            --chart-temp: #ff6b6b;
+            --chart-wind: #1e90ff;
+            --chart-humidity: #00c48f;
+            --chart-pressure: #ffa500;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-nav {
+            background-color: var(--dark-gray);
+            width: 100%;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            width: 95%;
+            max-width: 1200px;
+            height: 760px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 165, 179, 0.3);
+            border-radius: 8px;
+            padding: 2rem 2rem 3rem 2rem;
+            position: relative;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            height: calc(100% - 30px);
+        }
+
+        .panel {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 10px;
+            position: relative;
+            min-height: 160px;
+        }
+
+        .panel canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-bottom {
+            position: absolute;
+            bottom: 10px;
+            width: calc(100% - 2rem);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .last-update-left {
+            text-align: left;
+            font-style: italic;
+        }
+
+        .credit-right {
+            text-align: right;
+            color: var(--vtsu-turquoise);
+        }
+
+        .reset-zoom-btn {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 12px;
+            background: rgba(0, 165, 179, 0.3);
+            border: 1px solid var(--vtsu-turquoise);
+            border-radius: 4px;
+            color: var(--vtsu-turquoise);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .reset-zoom-btn:hover {
+            background: rgba(0, 165, 179, 0.5);
+            color: white;
+        }
+
+        .reset-zoom-btn.visible {
+            display: block;
+        }
+
+        .info-top {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.6);
+            z-index: 5;
+        }
+
+        .loading {
+            display: none;
+            font-size: 1.2rem;
+            color: var(--vtsu-turquoise);
+        }
+
+        .error {
+            display: none;
+            color: var(--vtsu-red);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 1024px) {
+            .nav-title {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .chart-wrapper {
+                height: auto;
+                max-height: 90vh;
+                padding: 1.5rem 1.5rem 2.5rem 1.5rem;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .panel {
+                min-height: 140px;
+            }
+
+            .info-bottom {
+                font-size: 0.8rem;
+            }
+
+            .reset-zoom-btn {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+
+            .back-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-title {
+                font-size: 0.9rem;
+            }
+
+            .back-btn {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 0.75rem;
+            }
+
+            .chart-wrapper {
+                width: 100%;
+                height: auto;
+                max-height: 90vh;
+                padding: 1rem 1rem 2rem 1rem;
+                border-radius: 6px;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                gap: 8px;
+            }
+
+            .panel {
+                min-height: 120px;
+                padding: 8px;
+            }
+
+            .info-top {
+                font-size: 0.65rem;
+                top: 8px;
+            }
+
+            .info-bottom {
+                font-size: 0.75rem;
+                bottom: 8px;
+                width: calc(100% - 1rem);
+                padding: 0 0.5rem;
+            }
+
+            .reset-zoom-btn {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+                bottom: 8px;
+            }
+
+            .loading {
+                font-size: 1rem;
+            }
+
+            .error {
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .top-nav {
+                padding: 0.6rem 0.5rem;
+            }
+
+            .nav-title {
+                font-size: 0.85rem;
+            }
+
+            .back-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+                left: 0.5rem;
+            }
+
+            .container {
+                padding: 0.5rem;
+            }
+
+            .chart-wrapper {
+                width: 100%;
+                height: auto;
+                max-height: 90vh;
+                padding: 0.75rem 0.75rem 1.5rem 0.75rem;
+                border-radius: 4px;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .panel {
+                min-height: 100px;
+                padding: 6px;
+                border-radius: 4px;
+            }
+
+            .info-top {
+                font-size: 0.6rem;
+                top: 6px;
+            }
+
+            .info-bottom {
+                font-size: 0.65rem;
+                bottom: 6px;
+                width: calc(100% - 0.75rem);
+                padding: 0 0.375rem;
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+            }
+
+            .last-update-left,
+            .credit-right {
+                text-align: center;
+            }
+
+            .reset-zoom-btn {
+                padding: 3px 6px;
+                font-size: 0.7rem;
+                bottom: 6px;
+            }
+
+            .loading {
+                font-size: 0.95rem;
+            }
+
+            .error {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Portrait orientation for tablets and phones */
+        @media (orientation: portrait) and (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="back-btn">← Back</a>
+        <div class="nav-title">VTSU Mesonet Full Dataset (Last 24 Hours)</div>  
+    </nav>
+
+    <div class="container">
+        <div class="loading" id="loading">Loading station dataset...</div>      
+        <div class="error" id="error"></div>
+
+        <div class="chart-wrapper" id="chartWrapper" style="display: none;">    
+            <div class="chart-grid">
+                <div class="panel"><canvas id="tempChart"></canvas></div>       
+                <div class="panel"><canvas id="windChart"></canvas></div>       
+                <div class="panel"><canvas id="humidityChart"></canvas></div>   
+                <div class="panel"><canvas id="pressureChart"></canvas></div>   
+            </div>
+            <div class="info-top">Data Resets Daily at 0000Z</div>
+            <button class="reset-zoom-btn" id="resetZoomBtn" onclick="resetZoom()">Reset Zoom</button>
+            <div class="info-bottom">
+                <div class="last-update-left">Last Updated (UTC): <span id="updateTime">--:--:--</span></div>
+                <div class="credit-right">API Courtesy of Jason Kaiser</div>    
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SYNOPTIC_TOKEN = 'fa7fb795d0a4483f97def20cfca678e0';
+        const SYNOPTIC_STID = 'LSC01';
+        const SYNOPTIC_FALLBACK_STID = 'LSC02';
+        let charts = {};
+        let updateInterval = null;
+        let dailyResetTimeout = null;
+        const maxPoints = 288;
+        let lastResetUtcDate = null;
+        const seriesState = {
+            timeLabels: [],
+            tempData: [],
+            windData: [],
+            humidityData: [],
+            pressureData: []
+        };
+
+        function saveStateToLocalStorage() {
+            try {
+                localStorage.setItem('mesonetState', JSON.stringify({
+                    timeLabels: seriesState.timeLabels,
+                    tempData: seriesState.tempData,
+                    windData: seriesState.windData,
+                    humidityData: seriesState.humidityData,
+                    pressureData: seriesState.pressureData,
+                    lastResetUtcDate: lastResetUtcDate
+                }));
+            } catch (e) {
+                console.warn('Failed to save state to localStorage:', e);       
+            }
+        }
+
+        function loadStateFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem('mesonetState');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    seriesState.timeLabels = data.timeLabels || [];
+                    seriesState.tempData = data.tempData || [];
+                    seriesState.windData = data.windData || [];
+                    seriesState.humidityData = data.humidityData || [];
+                    seriesState.pressureData = data.pressureData || [];
+                    lastResetUtcDate = data.lastResetUtcDate;
+                }
+            } catch (e) {
+                console.warn('Failed to load state from localStorage:', e);     
+            }
+        }
+
+        function pushPoint(label, temp, wind, humidity, pressure) {
+            const lastLabel = seriesState.timeLabels[seriesState.timeLabels.length - 1];
+            if (label === lastLabel) return;
+
+            seriesState.timeLabels.push(label);
+            seriesState.tempData.push(temp);
+            seriesState.windData.push(wind);
+            seriesState.humidityData.push(humidity);
+            seriesState.pressureData.push(pressure);
+
+            if (seriesState.timeLabels.length > maxPoints) {
+                seriesState.timeLabels.shift();
+                seriesState.tempData.shift();
+                seriesState.windData.shift();
+                seriesState.humidityData.shift();
+                seriesState.pressureData.shift();
+            }
+        }
+
+        function parseValue(value) {
+            if (value === null || value === undefined) return null;
+            if (value === 'M' || value === '' || value === 'NA') return null;   
+            const num = Number(value);
+            return Number.isFinite(num) ? num : null;
+        }
+
+        function parseTempValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // CSV data is already in Fahrenheit
+            return parsed;
+        }
+
+        function parseWindValue(value) {
+            const parsed = parseValue(value);
+            if (parsed === null) return null;
+            // CSV data is already in mph
+            return parsed;
+        }
+
+        function getTimeUntilNextReset() {
+            const now = new Date();
+            const nextReset = new Date(now);
+            nextReset.setUTCHours(24, 0, 0, 0); // Set to next 0000Z
+
+            // If it's already past 0000Z today, this will be tomorrow's 0000Z  
+            if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && now.getUTCSeconds() < 1) {
+                // If it's exactly 0000Z, schedule for tomorrow
+                nextReset.setUTCDate(nextReset.getUTCDate() + 1);
+            }
+
+            return nextReset.getTime() - now.getTime();
+        }
+
+        function scheduleDailyReset() {
+            // Clear any existing timeout
+            if (dailyResetTimeout) {
+                clearTimeout(dailyResetTimeout);
+            }
+
+            const timeUntilReset = getTimeUntilNextReset();
+
+            dailyResetTimeout = setTimeout(() => {
+                // Fetch fresh data at 0000Z (this will trigger backfill for new day)
+                fetchMesonetData(false);
+                // Schedule the next reset for tomorrow's 0000Z
+                scheduleDailyReset();
+            }, timeUntilReset);
+        }
+
+        async function fetchBackfill() {
+            try {
+                console.log('Fetching Synoptic timeseries data...');
+
+                let data = null;
+                for (const stid of [SYNOPTIC_STID, SYNOPTIC_FALLBACK_STID]) {
+                    try {
+                        const url = `https://api.synopticdata.com/v2/stations/timeseries?stid=${stid}&token=${SYNOPTIC_TOKEN}&recent=1440&units=english`;
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const json = await res.json();
+                        if (json.SUMMARY?.RESPONSE_CODE === 1 && json.STATION?.length > 0) {
+                            data = json;
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn(`Station ${stid} failed:`, e);
+                    }
+                }
+                if (!data) throw new Error('All stations failed to return data');
+
+                const obs = data.STATION[0].OBSERVATIONS;
+                const times = obs.date_time || [];
+                const temps = obs.air_temp_set_1 || [];
+                const winds = obs.wind_speed_set_1 || [];
+                const humidities = obs.relative_humidity_set_1 || [];
+                const pressures = obs.sea_level_pressure_set_1d || obs.altimeter_set_1d || [];
+
+                seriesState.timeLabels = [];
+                seriesState.tempData = [];
+                seriesState.windData = [];
+                seriesState.humidityData = [];
+                seriesState.pressureData = [];
+
+                for (let i = 0; i < times.length; i++) {
+                    const dt = new Date(times[i]);
+                    const label = dt.toISOString().split('T')[1].substring(0, 5) + 'Z';
+                    seriesState.timeLabels.push(label);
+                    seriesState.tempData.push(parseValue(temps[i]));
+                    seriesState.windData.push(parseValue(winds[i]));
+                    seriesState.humidityData.push(parseValue(humidities[i]));
+                    seriesState.pressureData.push(parseValue(pressures[i]));
+                }
+
+                console.log(`Synoptic timeseries succeeded! Loaded ${seriesState.timeLabels.length} data points`);
+                if (seriesState.timeLabels.length > maxPoints) {
+                    const startIndex = seriesState.timeLabels.length - maxPoints;
+                    seriesState.timeLabels = seriesState.timeLabels.slice(startIndex);
+                    seriesState.tempData = seriesState.tempData.slice(startIndex);
+                    seriesState.windData = seriesState.windData.slice(startIndex);
+                    seriesState.humidityData = seriesState.humidityData.slice(startIndex);
+                    seriesState.pressureData = seriesState.pressureData.slice(startIndex);
+                }
+            } catch (backfillError) {
+                console.error('Backfill failed:', backfillError.message);       
+                // Don't throw - allow to continue
+            }
+        }
+
+        async function fetchMesonetData(isInitialLoad = false) {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const chartWrapper = document.getElementById('chartWrapper');       
+
+            try {
+                loading.style.display = 'block';
+                error.style.display = 'none';
+
+                const nowUtcDate = new Date().toISOString().split('T')[0];      
+
+                // Always fetch fresh data from Synoptic API
+                lastResetUtcDate = nowUtcDate;
+                await fetchBackfill();
+
+                // Verify we have data
+                const hasAny = [
+                    ...seriesState.tempData,
+                    ...seriesState.windData,
+                    ...seriesState.humidityData,
+                    ...seriesState.pressureData
+                ].some(value => Number.isFinite(value));
+
+                if (!hasAny) {
+                    throw new Error('No valid data points available');      
+                }
+
+                console.log('Current data points:', seriesState.timeLabels.length);
+                
+                // Save state to localStorage after each update
+                saveStateToLocalStorage();
+                
+                updateCharts(
+                    seriesState.timeLabels,
+                    seriesState.tempData,
+                    seriesState.windData,
+                    seriesState.humidityData,
+                    seriesState.pressureData
+                );
+
+                const utcTime = new Date().toISOString().split('T')[1].substring(0, 8);
+                document.getElementById('updateTime').textContent = utcTime;    
+
+                chartWrapper.style.display = 'block';
+                loading.style.display = 'none';
+            } catch (err) {
+                console.error('Failed to fetch mesonet data:', err);
+                error.style.display = 'block';
+                error.textContent = `Error loading data: ${err.message}`;       
+                loading.style.display = 'none';
+            }
+        }
+
+        function resetZoom() {
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.resetZoom) {
+                    chart.resetZoom();
+                }
+            });
+            hideResetZoomBtn();
+        }
+
+        function showResetZoomBtn() {
+            const btn = document.getElementById('resetZoomBtn');
+            if (btn) btn.classList.add('visible');
+        }
+
+        function hideResetZoomBtn() {
+            const btn = document.getElementById('resetZoomBtn');
+            if (btn) btn.classList.remove('visible');
+        }
+
+        function updateCharts(timeLabels, tempData, windData, humidityData, pressureData) {
+            Object.values(charts).forEach(existing => existing.destroy());      
+            charts = {};
+
+            const baseOptions = (yTitle) => {
+                const isMobile = window.innerWidth <= 768;
+                const isSmallMobile = window.innerWidth <= 480;
+                const legendFontSize = isSmallMobile ? 8 : isMobile ? 9 : 11;   
+                const tickFontSize = isSmallMobile ? 7 : isMobile ? 8 : 10;     
+                const titleFontSize = isSmallMobile ? 9 : isMobile ? 10 : 12;   
+                const maxTicksLimit = isSmallMobile ? 6 : isMobile ? 7 : 8;     
+
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#ffffff', font: { size: legendFontSize, weight: 'bold' } } },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true, speed: 0.1 },
+                                pinch: { enabled: true },
+                                mode: 'x',
+                                onZoomStart: () => showResetZoomBtn(),
+                                onZoomComplete: () => showResetZoomBtn()        
+                            },
+                            pan: { enabled: false }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', maxTicksLimit: maxTicksLimit, maxRotation: 45, minRotation: 45, font: { size: tickFontSize } },
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' }        
+                        },
+                        y: {
+                            display: true,
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: tickFontSize } },
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },       
+                            title: { display: true, text: yTitle, color: '#ffffff', font: { size: titleFontSize } }
+                        }
+                    }
+                };
+            };
+
+            const lineStyle = (color) => ({
+                borderColor: color,
+                backgroundColor: 'transparent',
+                borderWidth: 0.5,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                spanGaps: true,
+                fill: false
+            });
+
+            charts.temp = new Chart(document.getElementById('tempChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: timeLabels, datasets: [{ label: 'Temperature (F)', data: tempData, ...lineStyle('#ff6b6b') }] },
+                options: baseOptions('Temperature (F)')
+            });
+
+            charts.wind = new Chart(document.getElementById('windChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: timeLabels, datasets: [{ label: 'Wind Speed (mph)', data: windData, ...lineStyle('#1e90ff') }] },
+                options: baseOptions('Wind Speed (mph)')
+            });
+
+            charts.humidity = new Chart(document.getElementById('humidityChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: timeLabels, datasets: [{ label: 'Relative Humidity (%)', data: humidityData, ...lineStyle('#00c48f') }] },
+                options: baseOptions('Relative Humidity (%)')
+            });
+
+            charts.pressure = new Chart(document.getElementById('pressureChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: timeLabels, datasets: [{ label: 'Pressure (hPa)', data: pressureData, ...lineStyle('#ffa500') }] },
+                options: baseOptions('Pressure (hPa)')
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            // Trigger initial load with backfill from 0000Z
+            fetchMesonetData(true);
+            // Update every 60 seconds for faster data accumulation
+            updateInterval = setInterval(() => fetchMesonetData(false), 60000); 
+            // Schedule daily reset at 0000Z
+            scheduleDailyReset();
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            if (dailyResetTimeout) {
+                clearTimeout(dailyResetTimeout);
+            }
+        });
+    </script>
+</body>
+</html>
