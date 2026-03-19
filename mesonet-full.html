@@ -402,7 +402,9 @@
     </div>
 
     <script>
-        const MESONET_CSV_URL = 'https://atmos.vermontstate.edu/common/mesowest.php';
+        const SYNOPTIC_TOKEN = 'fa7fb795d0a4483f97def20cfca678e0';
+        const SYNOPTIC_STID = 'LSC01';
+        const SYNOPTIC_FALLBACK_STID = 'LSC02';
         let charts = {};
         let updateInterval = null;
         let dailyResetTimeout = null;
@@ -520,96 +522,49 @@
 
         async function fetchBackfill() {
             try {
-                console.log('Fetching CSV backfill data...');
+                console.log('Fetching Synoptic timeseries data...');
 
-                // Check if data is available from index.html
-                let csvData = window.fullMesonetData;
-                
-                // If not available from parent page, fetch directly
-                if (!csvData) {
-                    console.log('Fetching CSV directly from server...');
-                    const csvUrlWithCache = MESONET_CSV_URL + '?t=' + Date.now();
-                    const proxies = [
-                        url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
-                        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-                        url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                    ];
-
-                    // Try each proxy in turn, validate it actually returned CSV
-                    const allSources = [
-                        ...proxies.map(buildUrl => buildUrl(csvUrlWithCache)),
-                        csvUrlWithCache  // direct fetch as last resort
-                    ];
-                    let lastError;
-                    for (const url of allSources) {
-                        try {
-                            const res = await fetch(url, { cache: 'no-store' });
-                            if (!res.ok) { lastError = new Error(`Status ${res.status} from ${url}`); continue; }
-                            const text = await res.text();
-                            // Validate it looks like CSV (first line should not be HTML)
-                            if (text.trim().startsWith('<') || text.trim().length === 0) {
-                                lastError = new Error(`Non-CSV response from ${url}`);
-                                console.warn(lastError.message);
-                                continue;
-                            }
-                            csvData = text;
-                            console.log(`CSV fetched successfully from: ${url}`);
+                let data = null;
+                for (const stid of [SYNOPTIC_STID, SYNOPTIC_FALLBACK_STID]) {
+                    try {
+                        const url = `https://api.synopticdata.com/v2/stations/timeseries?stid=${stid}&token=${SYNOPTIC_TOKEN}&recent=1440&units=english`;
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const json = await res.json();
+                        if (json.SUMMARY?.RESPONSE_CODE === 1 && json.STATION?.length > 0) {
+                            data = json;
                             break;
-                        } catch (err) {
-                            lastError = err;
                         }
-                    }
-                    if (!csvData) {
-                        throw new Error(`All sources failed. Last error: ${lastError?.message}`);
+                    } catch (e) {
+                        console.warn(`Station ${stid} failed:`, e);
                     }
                 }
+                if (!data) throw new Error('All stations failed to return data');
 
-                // Parse CSV data
-                const lines = csvData.trim().split('\n');
-                if (lines.length < 2) {
-                    throw new Error('No data in CSV');
-                }
+                const obs = data.STATION[0].OBSERVATIONS;
+                const times = obs.date_time || [];
+                const temps = obs.air_temp_set_1 || [];
+                const winds = obs.wind_speed_set_1 || [];
+                const humidities = obs.relative_humidity_set_1 || [];
+                const pressures = obs.sea_level_pressure_set_1d || obs.altimeter_set_1d || [];
 
-                // Skip header (first line), process all data lines
                 seriesState.timeLabels = [];
                 seriesState.tempData = [];
                 seriesState.windData = [];
                 seriesState.humidityData = [];
                 seriesState.pressureData = [];
 
-                for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(',');
-                    if (values.length < 9) continue; // Skip incomplete rows
-                    
-                    // CSV columns: Date,Time,Precip,2m temp,RH,Dewpoint,Pressure,Wind Dir,Wind Avg,Wind Gust,...
-                    const time = values[1];
-                    const temp = parseTempValue(parseValue(values[3]));
-                    const dewpoint = parseValue(values[5]);
-                    const pressure = parseValue(values[6]); // Already in hPa
-                    const wind = parseWindValue(parseValue(values[8])); // Already in mph
-                    
-                    // Calculate relative humidity from temperature and dewpoint
-                    let humidity = null;
-                    if (temp !== null && dewpoint !== null) {
-                        // Magnus formula: RH = 100 * (e_s(Td) / e_s(T))
-                        const a = 17.625;
-                        const b = 243.04;
-                        const es_dewpoint = Math.exp((a * dewpoint) / (b + dewpoint));
-                        const es_temp = Math.exp((a * temp) / (b + temp));
-                        humidity = 100 * (es_dewpoint / es_temp);
-                    }
-
-                    seriesState.timeLabels.push(time);
-                    seriesState.tempData.push(temp);
-                    seriesState.windData.push(wind);
-                    seriesState.humidityData.push(humidity);
-                    seriesState.pressureData.push(pressure);
+                for (let i = 0; i < times.length; i++) {
+                    const dt = new Date(times[i]);
+                    const label = dt.toISOString().split('T')[1].substring(0, 5) + 'Z';
+                    seriesState.timeLabels.push(label);
+                    seriesState.tempData.push(parseValue(temps[i]));
+                    seriesState.windData.push(parseValue(winds[i]));
+                    seriesState.humidityData.push(parseValue(humidities[i]));
+                    seriesState.pressureData.push(parseValue(pressures[i]));
                 }
 
-                console.log(`CSV backfill succeeded! Loaded ${seriesState.timeLabels.length} data points`);
-
-                // Keep only last maxPoints
+                console.log(`Synoptic timeseries succeeded! Loaded ${seriesState.timeLabels.length} data points`);
                 if (seriesState.timeLabels.length > maxPoints) {
                     const startIndex = seriesState.timeLabels.length - maxPoints;
                     seriesState.timeLabels = seriesState.timeLabels.slice(startIndex);
@@ -635,25 +590,9 @@
 
                 const nowUtcDate = new Date().toISOString().split('T')[0];      
 
-                // Load saved state from localStorage only on initial load      
-                if (isInitialLoad && !lastResetUtcDate) {
-                    loadStateFromLocalStorage();
-                }
-
-                // Always backfill on initial load OR if it's a new UTC day     
-                const shouldBackfill = isInitialLoad || (lastResetUtcDate !== nowUtcDate);
-
-                if (shouldBackfill) {
-                    console.log(isInitialLoad ? 'Initial page load - fetching CSV data...' : 'New UTC day detected - fetching fresh data...');     
-                    seriesState.timeLabels = [];
-                    seriesState.tempData = [];
-                    seriesState.windData = [];
-                    seriesState.humidityData = [];
-                    seriesState.pressureData = [];
-                    lastResetUtcDate = nowUtcDate;
-
-                    await fetchBackfill();
-                }
+                // Always fetch fresh data from Synoptic API
+                lastResetUtcDate = nowUtcDate;
+                await fetchBackfill();
 
                 // Verify we have data
                 const hasAny = [
